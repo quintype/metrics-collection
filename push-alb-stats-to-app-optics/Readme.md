@@ -5,6 +5,7 @@ This project is an AWS lambda designed to listen to S3 upload events, process da
 ## Deployment
 
 This project is aimed to be deployed as an AWS lambda to execute on S3 file upload. Do remember to do the following:
+* Run `make`, then upload `push-alb-stats-to-app-optics` to lambda
 * Allow IAM Permissions to only have access to files you wish to aggregate
 * Set the APP_OPTICS_KEY with the API token
 
