@@ -2,6 +2,8 @@
 
 This project is an AWS lambda designed to listen to S3 upload events, process data in memory, then upload the statistics to app optics.
 
+This project uses Go 1.11 (as it uses go modules)
+
 ## Deployment
 
 This project is aimed to be deployed as an AWS lambda to execute on S3 file upload. Do remember to do the following:
