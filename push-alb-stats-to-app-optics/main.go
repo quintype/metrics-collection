@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"os"
 
 	"push-alb-stats-to-app-optics/domain"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -15,8 +18,11 @@ func newS3Client() *s3.S3 {
 	return s3.New(session.Must(session.NewSession()))
 }
 
-func lambdaHandler() (string, error) {
-	return "Hello ƛ!", nil
+func lambdaHandler(ctx context.Context, s3Event events.S3Event) {
+	for _, record := range s3Event.Records {
+		s3 := record.S3
+		log.Printf("[%s - %s] Bucket = %s, Key = %s \n", record.EventSource, record.EventTime, s3.Bucket.Name, s3.Object.Key)
+	}
 }
 
 func localHandler(bucketName, path string) error {
