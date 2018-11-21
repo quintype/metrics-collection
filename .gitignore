@@ -14,4 +14,4 @@
 # Specific Binaries
 /push-alb-stats-to-app-optics/push-alb-stats-to-app-optics
 
-deployment.zip
+*.zip

@@ -1,0 +1,12 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.8
+
+    steps:
+      - checkout
+      - run: make -C push-alb-stats-to-app-optics test push-alb-stats-to-app-optics.zip
+      - store_artifacts:
+          path: push-alb-stats-to-app-optics/push-alb-stats-to-app-optics.zip
+          destination: push-alb-stats-to-app-optics.zip
