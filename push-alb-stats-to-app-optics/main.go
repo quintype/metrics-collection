@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"push-alb-stats-to-app-optics/domain"
 
@@ -32,8 +33,12 @@ func localHandler(bucketName, path string) error {
 		return err
 	}
 
-	for item := range domain.ParseLogFile(s3stream) {
-		fmt.Printf("%v\n", item)
+	logEntriesStream := domain.ParseLogFile(s3stream)
+
+	aggregation := domain.AggregateLogEntries(logEntriesStream, strings.Split(os.Getenv("IMPORTANT_DOMAINS"), ","))
+
+	for key, value := range aggregation {
+		fmt.Printf("%v %v\n", key, value)
 	}
 
 	return nil
