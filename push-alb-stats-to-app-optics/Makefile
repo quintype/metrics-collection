@@ -2,7 +2,6 @@ push-alb-stats-to-app-optics.zip: push-alb-stats-to-app-optics
 	zip $@ $<
 
 test: domain
-	go get
 	go test ./domain
 
 push-alb-stats-to-app-optics: main.go domain
