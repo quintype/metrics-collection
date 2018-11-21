@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -25,6 +26,28 @@ func lambdaHandler(ctx context.Context, s3Event events.S3Event) {
 	}
 }
 
+func convertToAppOpticsJSON(aggregation domain.Aggregation) ([]byte, error) {
+	events := []interface{}{}
+	for key, value := range aggregation {
+		events = append(events, map[string]interface{}{
+			"name":       "platform.sketches-internal.bytes-requests",
+			"time":       key.Minute,
+			"attributes": map[string]bool{"aggregate": true},
+			"period":     60,
+			"sum":        value.TotalBytes,
+			"count":      value.Count,
+			"tags": map[string]string{
+				"alb-name": key.AlbName,
+				"host":     key.Host,
+			},
+		})
+	}
+
+	fullRequest := map[string]interface{}{"measurements": events}
+
+	return json.Marshal(fullRequest)
+}
+
 func pushValuesToAppOptics(bucketName, path string) error {
 	s3stream, err := domain.GetAlbLogStream(newS3Client(), bucketName, path)
 
@@ -36,9 +59,13 @@ func pushValuesToAppOptics(bucketName, path string) error {
 
 	aggregation := domain.AggregateLogEntries(logEntriesStream, strings.Split(os.Getenv("IMPORTANT_DOMAINS"), ","))
 
-	for key, value := range aggregation {
-		fmt.Printf("%v %v\n", key, value)
+	json, err := convertToAppOpticsJSON(aggregation)
+
+	if err != nil {
+		return err
 	}
+
+	fmt.Printf("%s", json)
 
 	return nil
 }
