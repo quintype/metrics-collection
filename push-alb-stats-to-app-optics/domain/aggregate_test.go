@@ -23,7 +23,7 @@ func TestGetTheTotalCountAndBytes(t *testing.T) {
 		}
 	}()
 
-	logEntries := AggregateLogEntries(ch)
+	logEntries := AggregateLogEntries(ch, []string{"bloombergquint.com"})
 
 	entry := logEntries.GetEntry("bloombergquint.com", 1234)
 	assert.Equal(t, 1, entry.Count)
@@ -32,4 +32,27 @@ func TestGetTheTotalCountAndBytes(t *testing.T) {
 	totalEntry := logEntries.GetEntry("total", 1234)
 	assert.Equal(t, 1, totalEntry.Count)
 	assert.Equal(t, int64(50), totalEntry.TotalBytes)
+
+	assert.Equal(t, 2, len(logEntries))
+}
+
+func TestItOnlyCreatesEntriesForSpecialDomains(t *testing.T) {
+	ch := make(chan *LogEntry, 100)
+
+	go func() {
+		defer close(ch)
+		ch <- &LogEntry{
+			AlbName:               "foobar",
+			Minute:                1234,
+			Host:                  "unimportantdomain.com",
+			Port:                  "80",
+			RequestProcessingTime: 0.001,
+			Status:                200,
+			TotalBytes:            50,
+			IsError:               false,
+		}
+	}()
+
+	logEntries := AggregateLogEntries(ch, []string{})
+	assert.Equal(t, 1, len(logEntries))
 }

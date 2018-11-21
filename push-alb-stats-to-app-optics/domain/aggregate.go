@@ -1,5 +1,7 @@
 package domain
 
+import "github.com/forestgiant/sliceutil"
+
 type byteAggregationKey struct {
 	Host   string
 	Minute int
@@ -14,14 +16,9 @@ type ByteAggregationValue struct {
 // ByteAggregation is a map from host, minute => totals
 type ByteAggregation map[byteAggregationKey]ByteAggregationValue
 
-// AggregateResults has the aggregated results after processing
-type AggregateResults struct {
-	byteAggregation ByteAggregation
-}
-
 // GetEntry returns the summarized stats for a host and minute
-func (f *AggregateResults) GetEntry(host string, minute int) ByteAggregationValue {
-	return f.byteAggregation[byteAggregationKey{host, minute}]
+func (m ByteAggregation) GetEntry(host string, minute int) ByteAggregationValue {
+	return m[byteAggregationKey{host, minute}]
 }
 
 func (m ByteAggregation) updateTotalBytes(host string, entry *LogEntry) {
@@ -33,13 +30,16 @@ func (m ByteAggregation) updateTotalBytes(host string, entry *LogEntry) {
 }
 
 // AggregateLogEntries consumes the channel and provides an aggregated result
-func AggregateLogEntries(ch chan *LogEntry) *AggregateResults {
+func AggregateLogEntries(ch chan *LogEntry, importantDomains []string) ByteAggregation {
 	byteMap := make(ByteAggregation)
 
 	for entry := range ch {
-		byteMap.updateTotalBytes(entry.Host, entry)
+		// Potentially Slow?
+		if sliceutil.Contains(importantDomains, entry.Host) {
+			byteMap.updateTotalBytes(entry.Host, entry)
+		}
 		byteMap.updateTotalBytes("total", entry)
 	}
 
-	return &AggregateResults{byteMap}
+	return byteMap
 }
