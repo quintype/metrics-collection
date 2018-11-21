@@ -25,11 +25,11 @@ func TestGetTheTotalCountAndBytes(t *testing.T) {
 
 	logEntries := AggregateLogEntries(ch, []string{"bloombergquint.com"})
 
-	entry := logEntries.GetEntry("bloombergquint.com", 1234)
+	entry := logEntries.GetEntry("foobar", "bloombergquint.com", 1234)
 	assert.Equal(t, 1, entry.Count)
 	assert.Equal(t, int64(50), entry.TotalBytes)
 
-	totalEntry := logEntries.GetEntry("total", 1234)
+	totalEntry := logEntries.GetEntry("foobar", "total", 1234)
 	assert.Equal(t, 1, totalEntry.Count)
 	assert.Equal(t, int64(50), totalEntry.TotalBytes)
 

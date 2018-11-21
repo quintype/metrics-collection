@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
@@ -22,11 +21,11 @@ func newS3Client() *s3.S3 {
 func lambdaHandler(ctx context.Context, s3Event events.S3Event) {
 	for _, record := range s3Event.Records {
 		s3 := record.S3
-		log.Printf("[%s - %s] Bucket = %s, Key = %s \n", record.EventSource, record.EventTime, s3.Bucket.Name, s3.Object.Key)
+		pushValuesToAppOptics(s3.Bucket.Name, s3.Object.Key)
 	}
 }
 
-func localHandler(bucketName, path string) error {
+func pushValuesToAppOptics(bucketName, path string) error {
 	s3stream, err := domain.GetAlbLogStream(newS3Client(), bucketName, path)
 
 	if err != nil {
@@ -52,7 +51,7 @@ func main() {
 		if len(os.Args) != 3 {
 			panic(fmt.Sprintf("Usage: %s bucket-name path-name", os.Args[0]))
 		}
-		err := localHandler(os.Args[1], os.Args[2])
+		err := pushValuesToAppOptics(os.Args[1], os.Args[2])
 		if err != nil {
 			fmt.Println("Failure")
 			fmt.Println(err.Error())

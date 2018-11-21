@@ -3,8 +3,9 @@ package domain
 import "github.com/forestgiant/sliceutil"
 
 type byteAggregationKey struct {
-	Host   string
-	Minute int
+	AlbName string
+	Host    string
+	Minute  int
 }
 
 // ByteAggregationValue is aggregate stats for a host by minute
@@ -17,12 +18,12 @@ type ByteAggregationValue struct {
 type ByteAggregation map[byteAggregationKey]ByteAggregationValue
 
 // GetEntry returns the summarized stats for a host and minute
-func (m ByteAggregation) GetEntry(host string, minute int) ByteAggregationValue {
-	return m[byteAggregationKey{host, minute}]
+func (m ByteAggregation) GetEntry(albname, host string, minute int) ByteAggregationValue {
+	return m[byteAggregationKey{albname, host, minute}]
 }
 
 func (m ByteAggregation) updateTotalBytes(host string, entry *LogEntry) {
-	key := byteAggregationKey{host, entry.Minute}
+	key := byteAggregationKey{entry.AlbName, host, entry.Minute}
 	aggregateEntry := m[key]
 	aggregateEntry.Count++
 	aggregateEntry.TotalBytes += entry.TotalBytes
