@@ -10,6 +10,7 @@ This project is aimed to be deployed as an AWS lambda to execute on S3 file uplo
 * Run `make`, then upload `push-alb-stats-to-app-optics` to lambda
 * Allow IAM Permissions to only have access to files you wish to aggregate
 * Set the APP_OPTICS_KEY with the API token
+* Set IMPORTANT_DOMAINS with a comma separated list of domains that should be aggregated separately
 
 ## Testing
 
