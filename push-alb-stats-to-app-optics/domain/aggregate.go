@@ -2,28 +2,27 @@ package domain
 
 import "github.com/forestgiant/sliceutil"
 
-type byteAggregationKey struct {
+type aggregationKey struct {
 	AlbName string
 	Host    string
 	Minute  int
 }
 
-// ByteAggregationValue is aggregate stats for a host by minute
-type ByteAggregationValue struct {
+// aggregationValue is aggregate stats for a host by minute
+type aggregationValue struct {
 	Count      int
 	TotalBytes int64
 }
 
-// ByteAggregation is a map from host, minute => totals
-type ByteAggregation map[byteAggregationKey]ByteAggregationValue
+// Aggregation is a map from host, minute => totals
+type Aggregation map[aggregationKey]aggregationValue
 
-// GetEntry returns the summarized stats for a host and minute
-func (m ByteAggregation) GetEntry(albname, host string, minute int) ByteAggregationValue {
-	return m[byteAggregationKey{albname, host, minute}]
+func (m Aggregation) getEntry(albname, host string, minute int) aggregationValue {
+	return m[aggregationKey{albname, host, minute}]
 }
 
-func (m ByteAggregation) updateEntry(host string, entry *LogEntry) {
-	key := byteAggregationKey{entry.AlbName, host, entry.Minute}
+func (m Aggregation) updateEntry(host string, entry *LogEntry) {
+	key := aggregationKey{entry.AlbName, host, entry.Minute}
 	aggregateEntry := m[key]
 	aggregateEntry.Count++
 	aggregateEntry.TotalBytes += entry.TotalBytes
@@ -31,8 +30,8 @@ func (m ByteAggregation) updateEntry(host string, entry *LogEntry) {
 }
 
 // AggregateLogEntries consumes the channel and provides an aggregated result
-func AggregateLogEntries(ch chan *LogEntry, importantDomains []string) ByteAggregation {
-	aggregation := make(ByteAggregation)
+func AggregateLogEntries(ch chan *LogEntry, importantDomains []string) Aggregation {
+	aggregation := make(Aggregation)
 
 	for entry := range ch {
 		// Potentially Slow?
