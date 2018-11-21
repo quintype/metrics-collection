@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"strings"
 
@@ -26,29 +29,40 @@ func lambdaHandler(ctx context.Context, s3Event events.S3Event) {
 	}
 }
 
-func convertToAppOpticsJSON(aggregation domain.Aggregation) ([]byte, error) {
-	events := []interface{}{}
-	for key, value := range aggregation {
-		events = append(events, map[string]interface{}{
-			"name":       "platform.sketches-internal.bytes-requests",
-			"time":       key.Minute,
-			"attributes": map[string]bool{"aggregate": true},
-			"period":     60,
-			"sum":        value.TotalBytes,
-			"count":      value.Count,
-			"tags": map[string]string{
-				"alb-name": key.AlbName,
-				"host":     key.Host,
-			},
-		})
+func postToAppOptics(aggregation domain.Aggregation, appOpticsToken string) error {
+	fullRequest := map[string]interface{}{"measurements": aggregation.ConvertToAppOpticsEvents()}
+
+	json, err := json.Marshal(fullRequest)
+
+	if err != nil {
+		return err
 	}
 
-	fullRequest := map[string]interface{}{"measurements": events}
+	client := &http.Client{}
+	request, err := http.NewRequest("POST", "https://api.appoptics.com/v1/measurements", bytes.NewReader(json))
+	request.SetBasicAuth(appOpticsToken, "")
+	request.Header.Set("Content-Type", "application/json")
+	result, err := client.Do(request)
 
-	return json.Marshal(fullRequest)
+	if err != nil {
+		return err
+	}
+
+	defer result.Body.Close()
+
+	io.Copy(os.Stdout, result.Body)
+
+	if result.StatusCode != 202 {
+		return fmt.Errorf("Got status %d from AppOptics", result.StatusCode)
+	}
+
+	return nil
 }
 
 func pushValuesToAppOptics(bucketName, path string) error {
+	importantDomains := os.Getenv("IMPORTANT_DOMAINS")
+	appOpticsToken := os.Getenv("APP_OPTICS_TOKEN")
+
 	s3stream, err := domain.GetAlbLogStream(newS3Client(), bucketName, path)
 
 	if err != nil {
@@ -57,17 +71,9 @@ func pushValuesToAppOptics(bucketName, path string) error {
 
 	logEntriesStream := domain.ParseLogFile(s3stream)
 
-	aggregation := domain.AggregateLogEntries(logEntriesStream, strings.Split(os.Getenv("IMPORTANT_DOMAINS"), ","))
+	aggregation := domain.AggregateLogEntries(logEntriesStream, strings.Split(importantDomains, ","))
 
-	json, err := convertToAppOpticsJSON(aggregation)
-
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("%s", json)
-
-	return nil
+	return postToAppOptics(aggregation, appOpticsToken)
 }
 
 func main() {

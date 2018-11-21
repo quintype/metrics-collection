@@ -29,6 +29,26 @@ func (m Aggregation) updateEntry(host string, entry *LogEntry) {
 	m[key] = aggregateEntry
 }
 
+// ConvertToAppOpticsEvents convert the aggregation to events
+// FIXME: Test this
+func (m Aggregation) ConvertToAppOpticsEvents() (events []interface{}) {
+	for key, value := range m {
+		events = append(events, map[string]interface{}{
+			"name":       "platform.sketches-internal.bytes-requests",
+			"time":       key.Minute,
+			"attributes": map[string]bool{"aggregate": true},
+			"period":     60,
+			"sum":        value.TotalBytes,
+			"count":      value.Count,
+			"tags": map[string]string{
+				"alb-name": key.AlbName,
+				"host":     key.Host,
+			},
+		})
+	}
+	return
+}
+
 // AggregateLogEntries consumes the channel and provides an aggregated result
 func AggregateLogEntries(ch chan *LogEntry, importantDomains []string) Aggregation {
 	aggregation := make(Aggregation)
