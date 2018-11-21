@@ -22,7 +22,7 @@ func (m ByteAggregation) GetEntry(albname, host string, minute int) ByteAggregat
 	return m[byteAggregationKey{albname, host, minute}]
 }
 
-func (m ByteAggregation) updateTotalBytes(host string, entry *LogEntry) {
+func (m ByteAggregation) updateEntry(host string, entry *LogEntry) {
 	key := byteAggregationKey{entry.AlbName, host, entry.Minute}
 	aggregateEntry := m[key]
 	aggregateEntry.Count++
@@ -32,15 +32,15 @@ func (m ByteAggregation) updateTotalBytes(host string, entry *LogEntry) {
 
 // AggregateLogEntries consumes the channel and provides an aggregated result
 func AggregateLogEntries(ch chan *LogEntry, importantDomains []string) ByteAggregation {
-	byteMap := make(ByteAggregation)
+	aggregation := make(ByteAggregation)
 
 	for entry := range ch {
 		// Potentially Slow?
 		if sliceutil.Contains(importantDomains, entry.Host) {
-			byteMap.updateTotalBytes(entry.Host, entry)
+			aggregation.updateEntry(entry.Host, entry)
 		}
-		byteMap.updateTotalBytes("total", entry)
+		aggregation.updateEntry("total", entry)
 	}
 
-	return byteMap
+	return aggregation
 }
