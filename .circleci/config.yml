@@ -6,7 +6,7 @@ jobs:
 
     steps:
       - checkout
-      - run: make -C push-alb-stats-to-app-optics test push-alb-stats-to-app-optics.zip
+      - run: make -C push-alb-stats-to-app-optics
       - store_artifacts:
           path: push-alb-stats-to-app-optics/push-alb-stats-to-app-optics.zip
           destination: push-alb-stats-to-app-optics.zip
