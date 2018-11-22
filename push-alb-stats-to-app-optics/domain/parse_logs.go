@@ -55,7 +55,7 @@ func csvRowToLogEntry(record []string) (*LogEntry, error) {
 		return nil, err
 	}
 
-	requestProcessingTime, err := strconv.ParseFloat(record[RequestProcessingTimeField], 32)
+	requestProcessingTime, err := strconv.ParseFloat(record[RequestProcessingTimeField], 64)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func csvRowToLogEntry(record []string) (*LogEntry, error) {
 		Minute:                int(t),
 		Host:                  host,
 		Port:                  port,
-		RequestProcessingTime: float32(requestProcessingTime),
+		RequestProcessingTime: float64(requestProcessingTime),
 		Status:                int(status),
 		TotalBytes:            receivedBytes + sentBytes,
 		IsError:               requestProcessingTime < 0 || status >= 500,

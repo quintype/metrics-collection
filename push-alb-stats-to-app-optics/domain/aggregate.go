@@ -1,6 +1,11 @@
 package domain
 
-import "github.com/forestgiant/sliceutil"
+import (
+	"math"
+	"sort"
+
+	"github.com/forestgiant/sliceutil"
+)
 
 type aggregationKey struct {
 	AlbName string
@@ -10,8 +15,21 @@ type aggregationKey struct {
 
 // aggregationValue is aggregate stats for a host by minute
 type aggregationValue struct {
-	Count      int
-	TotalBytes int64
+	Count         int
+	TotalBytes    int64
+	responseTimes responseTimes
+}
+
+type responseTimes []float64
+
+func (m aggregationValue) SortedResponseTimes() responseTimes {
+	sort.Float64s(m.responseTimes)
+	return m.responseTimes
+}
+
+func (t responseTimes) GetPercentile(percentile int) float64 {
+	index := math.Round((float64(percentile) / 100) * float64(len(t)))
+	return t[int(index)-1]
 }
 
 // Aggregation is a map from host, minute => totals
@@ -26,6 +44,7 @@ func (m Aggregation) updateEntry(host string, entry *LogEntry) {
 	aggregateEntry := m[key]
 	aggregateEntry.Count++
 	aggregateEntry.TotalBytes += entry.TotalBytes
+	aggregateEntry.responseTimes = append(aggregateEntry.responseTimes, entry.RequestProcessingTime)
 	m[key] = aggregateEntry
 }
 

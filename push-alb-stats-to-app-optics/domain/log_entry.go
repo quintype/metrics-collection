@@ -6,7 +6,7 @@ type LogEntry struct {
 	Minute                int
 	Host                  string
 	Port                  string
-	RequestProcessingTime float32
+	RequestProcessingTime float64
 	Status                int
 	TotalBytes            int64
 	IsError               bool

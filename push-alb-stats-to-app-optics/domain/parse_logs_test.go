@@ -19,7 +19,7 @@ func TestParsingGzipStreamToRecords(t *testing.T) {
 	assert.Equal(t, 1541548200, v.Minute)
 	assert.Equal(t, "www.quintype.io", v.Host)
 	assert.Equal(t, "80", v.Port)
-	assert.Equal(t, float32(0.001), v.RequestProcessingTime)
+	assert.Equal(t, float64(0.001), v.RequestProcessingTime)
 	assert.Equal(t, 200, v.Status)
 	assert.Equal(t, int64(899), v.TotalBytes)
 	assert.False(t, v.IsError)
@@ -35,7 +35,7 @@ func TestParsingGzipStreamHasFailureForResponseTimeMinusOne(t *testing.T) {
 
 	v := <-ch
 
-	assert.Equal(t, float32(-1), v.RequestProcessingTime)
+	assert.Equal(t, float64(-1), v.RequestProcessingTime)
 	assert.True(t, v.IsError)
 
 	assert.Nil(t, <-ch)
