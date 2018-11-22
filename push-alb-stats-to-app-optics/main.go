@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -63,6 +64,8 @@ func pushValuesToAppOptics(bucketName, path string) error {
 	importantDomains := os.Getenv("IMPORTANT_DOMAINS")
 	appOpticsToken := os.Getenv("APP_OPTICS_TOKEN")
 
+	log.Printf("Starting To Aggregate %s %s", bucketName, path)
+
 	s3stream, err := domain.GetAlbLogStream(newS3Client(), bucketName, path)
 
 	if err != nil {
@@ -72,6 +75,8 @@ func pushValuesToAppOptics(bucketName, path string) error {
 	logEntriesStream := domain.ParseLogFile(s3stream)
 
 	aggregation := domain.AggregateLogEntries(logEntriesStream, strings.Split(importantDomains, ","))
+
+	log.Printf("Finished aggregating %s %s", bucketName, path)
 
 	return postToAppOptics(aggregation, appOpticsToken)
 }

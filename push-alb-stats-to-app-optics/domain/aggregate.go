@@ -64,6 +64,23 @@ func (m Aggregation) ConvertToAppOpticsEvents() (events []interface{}) {
 				"host":     key.Host,
 			},
 		})
+		responseTimes := value.SortedResponseTimes()
+		if len(responseTimes) > 100 {
+			for _, percentile := range []int{50, 75, 90, 95, 99} {
+				events = append(events, map[string]interface{}{
+					"name":       "platform.sketches-internal.percentile",
+					"time":       key.Minute,
+					"attributes": map[string]bool{"aggregate": true},
+					"period":     60,
+					"value":      responseTimes.GetPercentile(percentile),
+					"tags": map[string]string{
+						"alb-name":   key.AlbName,
+						"host":       key.Host,
+						"percentile": string(percentile),
+					},
+				})
+			}
+		}
 	}
 	return
 }
