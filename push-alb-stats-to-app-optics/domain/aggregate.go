@@ -3,6 +3,7 @@ package domain
 import (
 	"math"
 	"sort"
+	"strconv"
 
 	"github.com/forestgiant/sliceutil"
 )
@@ -76,7 +77,7 @@ func (m Aggregation) ConvertToAppOpticsEvents() (events []interface{}) {
 					"tags": map[string]string{
 						"alb-name":   key.AlbName,
 						"host":       key.Host,
-						"percentile": string(percentile),
+						"percentile": strconv.Itoa(percentile),
 					},
 				})
 			}
