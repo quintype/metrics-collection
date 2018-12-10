@@ -19,6 +19,7 @@ type aggregationValue struct {
 	Count         int
 	TotalBytes    int64
 	responseTimes responseTimes
+	errorCount    int
 }
 
 type responseTimes []float64
@@ -31,6 +32,14 @@ func (m aggregationValue) SortedResponseTimes() responseTimes {
 func (t responseTimes) GetPercentile(percentile int) float64 {
 	index := math.Round((float64(percentile) / 100) * float64(len(t)))
 	return t[int(index)-1]
+}
+
+func (m aggregationValue) GetErrorRate() float64 {
+	if m.errorCount == 0 {
+		return 0
+	}
+
+	return (float64(m.errorCount) * 100) / float64(m.Count)
 }
 
 // Aggregation is a map from host, minute => totals
@@ -46,6 +55,9 @@ func (m Aggregation) updateEntry(host string, entry *LogEntry) {
 	aggregateEntry.Count++
 	aggregateEntry.TotalBytes += entry.TotalBytes
 	aggregateEntry.responseTimes = append(aggregateEntry.responseTimes, entry.RequestProcessingTime)
+	if entry.IsError {
+		aggregateEntry.errorCount++
+	}
 	m[key] = aggregateEntry
 }
 
@@ -60,6 +72,16 @@ func (m Aggregation) ConvertToAppOpticsEvents() (events []interface{}) {
 			"period":     60,
 			"sum":        value.TotalBytes,
 			"count":      value.Count,
+			"tags": map[string]string{
+				"alb-name": key.AlbName,
+				"host":     key.Host,
+			},
+		})
+		events = append(events, map[string]interface{}{
+			"name":   "platform.sketches-internal.error-rate",
+			"time":   key.Minute,
+			"period": 60,
+			"value":  value.GetErrorRate(),
 			"tags": map[string]string{
 				"alb-name": key.AlbName,
 				"host":     key.Host,

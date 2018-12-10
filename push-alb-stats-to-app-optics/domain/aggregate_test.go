@@ -57,6 +57,37 @@ func TestItOnlyCreatesEntriesForSpecialDomains(t *testing.T) {
 	assert.Equal(t, 1, len(logEntries))
 }
 
+func TestGetErrorPercentage(t *testing.T) {
+	ch := make(chan *LogEntry, 100)
+	go func() {
+		defer close(ch)
+		ch <- &LogEntry{
+			AlbName:               "foobar",
+			Minute:                1234,
+			Host:                  "unimportantdomain.com",
+			Port:                  "80",
+			RequestProcessingTime: 0.001,
+			Status:                200,
+			TotalBytes:            50,
+			IsError:               false,
+		}
+		ch <- &LogEntry{
+			AlbName:               "foobar",
+			Minute:                1234,
+			Host:                  "unimportantdomain.com",
+			Port:                  "80",
+			RequestProcessingTime: 0.001,
+			Status:                200,
+			TotalBytes:            50,
+			IsError:               true,
+		}
+	}()
+	logEntries := AggregateLogEntries(ch, []string{})
+	entry := logEntries.getEntry("foobar", "total", 1234)
+
+	assert.Equal(t, float64(50), entry.GetErrorRate())
+}
+
 func TestGettingPercentiles(t *testing.T) {
 	ch := make(chan *LogEntry, 100)
 
