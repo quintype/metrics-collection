@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"push-athena-data-to-rds/athena"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/aws/aws-lambda-go/lambda"
 )
 
 func getAssettypeData(queryParams map[string]string) {
@@ -43,15 +48,25 @@ func getUncachedData(queryParams map[string]string) {
 }
 
 func runProcesses() {
-	d := time.Date(2018, 12, 17, 0, 0, 0, 0, time.UTC)
-	dateYear, dateMonth, dateDay := d.Date()
-	// year, month, day := time.Now().Date()
-	monthNumber := int(dateMonth)
+	var queryParams map[string]string
 
-	var queryParams = map[string]string{
-		"year":  strconv.Itoa(dateYear),
-		"month": strconv.Itoa(monthNumber),
-		"day":   strconv.Itoa(dateDay),
+	_, isDatePresent := os.LookupEnv("DATE")
+
+	if isDatePresent && os.Getenv("DATE") == "" {
+		dateYear, dateMonth, dateDay := time.Now().Date()
+		monthNumber := int(dateMonth)
+
+		queryParams["year"] = strconv.Itoa(dateYear)
+		queryParams["month"] = strconv.Itoa(monthNumber)
+		queryParams["day"] = strconv.Itoa(dateDay)
+
+	} else {
+		date := os.Getenv("DATE")
+		splitDate := strings.Split(date, "-")
+
+		queryParams["year"] = splitDate[0]
+		queryParams["month"] = splitDate[1]
+		queryParams["day"] = splitDate[2]
 	}
 
 	getAssettypeData(queryParams)
@@ -59,9 +74,15 @@ func runProcesses() {
 	getUncachedData(queryParams)
 }
 
-func main() {
-	// lambda.Start(runProcesses)
-	// fmt.Print("hey")
-
+func lambdaHandler(ctx context.Context) {
 	runProcesses()
+}
+
+func main() {
+	_, isLamda := os.LookupEnv("AWS_LAMBDA_FUNCTION_NAME")
+	if isLamda {
+		lambda.Start(lambdaHandler)
+	} else {
+		runProcesses()
+	}
 }

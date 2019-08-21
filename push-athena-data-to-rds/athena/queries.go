@@ -41,7 +41,8 @@ func AssetypeQuery(queryParams map[string]string) string {
 
 	whereClause := sq.And{sq.Eq{"year": queryParams["year"]},
 		sq.Eq{"month": queryParams["month"]},
-		sq.Eq{"day": queryParams["day"]}}
+		sq.Eq{"day": queryParams["day"]},
+		sq.Eq{"edgeresponsestatus": "200"}}
 
 	dateQuery := fmt.Sprint(stringDate, " as date")
 
@@ -124,7 +125,10 @@ func UncachedQuery(queryParams map[string]string) string {
 	monthString := fmt.Sprint("'", queryParams["month"], "'")
 	dayString := fmt.Sprint("'", queryParams["day"], "'")
 
-	whereClause := sq.And{sq.Eq{"year": yearString}, sq.Eq{"month": monthString}, sq.Eq{"day": dayString}, sq.NotEq{"request_url": nil}}
+	whereClause := sq.And{sq.Eq{"year": yearString},
+		sq.Eq{"month": monthString},
+		sq.Eq{"day": dayString},
+		sq.NotEq{"request_url": nil}}
 
 	query, args, _ := sq.Select().
 		Column("split_part(split_part(request_url,'/', 3), '.', 1) AS publisher_name").
