@@ -11,6 +11,6 @@ jobs:
       - store_artifacts:
           path: push-alb-stats-to-app-optics/push-alb-stats-to-app-optics.zip
           destination: push-alb-stats-to-app-optics.zip
-     - store_artifacts:
+      - store_artifacts:
           path: push-athena-data-to-rds/push-athena-data-to-rds.zip
           destination: push-athena-data-to-rds.zip
