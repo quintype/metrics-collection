@@ -15,20 +15,28 @@ func getDateString(params map[string]string) string {
 	return strDate
 }
 
-func generateQueryWithDate(query string, queryParams []interface{}) string {
-	for i := 1; i <= len(queryParams); i++ {
+func generateStringQuery(query sq.SelectBuilder) (string, error) {
+	stringQuery, args, err := query.PlaceholderFormat(sq.Dollar).ToSql()
+
+	if err != nil {
+		return "", err
+	}
+
+	for i := 1; i <= len(args); i++ {
 
 		placeHolderString := fmt.Sprint("$", i)
 		index := i - 1
-		newString := queryParams[index].(string)
+		newString := args[index].(string)
 
-		tempQuery := strings.Replace(query, placeHolderString, newString, 1)
-		query = tempQuery
+		tempQuery := strings.Replace(stringQuery, placeHolderString, newString, 1)
+		stringQuery = tempQuery
 	}
-	return query
+	return stringQuery, nil
 }
 
-func AssetypeQuery(queryParams map[string]string) string {
+func AssetypeDataQuery(queryParams map[string]string) (string, error) {
+	// query := "WITH request(url, cache_status, response_byte) AS (SELECT CASE WHEN split_part(clientrequesturi, '/', 2 ) = 'pdf' THEN split_part (clientrequesturi, '/', 3 ) ELSE split_part(clientrequesturi, '/', 2 ) END, cachecachestatus, edgeresponsebytes FROM qt_cloudflare_logs.assettype_com WHERE month = 12 AND year = 2018 AND day = 17), publisher_data(name, cache_status, response_byte) AS (SELECT CASE WHEN position('%' IN url) > 0 THEN split_part(url, '%', 1) ELSE url END, cache_status, response_byte FROM request) SELECT name, count(*) AS total_requests, sum(response_byte) AS total_bytes, sum(case WHEN cache_status = 'hit' THEN 1 ELSE 0 end) AS hit_count, '2018-12-17' AS date FROM publisher_data GROUP BY  name;"
+
 	stringDate := getDateString(queryParams)
 
 	requestCaseQuery := sq.Case().
@@ -46,50 +54,53 @@ func AssetypeQuery(queryParams map[string]string) string {
 
 	dateQuery := fmt.Sprint(stringDate, " as date")
 
-	requestSubQuery, args, _ := sq.Select().
+	requestSubQuery := sq.Select().
 		Prefix("WITH request(url, cache_status, response_byte) AS (").
 		Column(requestCaseQuery).
 		Columns("cachecachestatus", "edgeresponsebytes").
 		From("qt_cloudflare_logs.assettype_com ").
 		Where(whereClause).
-		Suffix("),").
-		PlaceholderFormat(sq.Dollar).
-		ToSql()
+		Suffix("),")
 
-	publisherDataSubQuery, _, _ := sq.Select().
+	publisherDataSubQuery := sq.Select().
 		Prefix("publisher_data(name, cache_status, response_byte) AS (").
 		Column(publisherCaseQuery).
 		Columns("cache_status, response_byte").
 		From("request").
-		Suffix(")").
-		ToSql()
+		Suffix(")")
+
+	requestStringQuery, requestErr := generateStringQuery(requestSubQuery)
+
+	if requestErr != nil {
+		return "", requestErr
+	}
+	publisherDataStringQuery, publisherDataErrr := generateStringQuery(publisherDataSubQuery)
+
+	if publisherDataErrr != nil {
+		return "", publisherDataErrr
+	}
 
 	countExp := sq.Expr("count(*)")
 	hitSumExp := sq.Expr("sum(case WHEN cache_status = 'hit' THEN 1 ELSE 0 end)")
 	responseByteSumExp := sq.Expr("sum(response_byte)")
 
-	query, _, _ := sq.Select("name").
-		Prefix(requestSubQuery).
-		Prefix(publisherDataSubQuery).
+	query := sq.Select("name").
+		Prefix(requestStringQuery).
+		Prefix(publisherDataStringQuery).
 		Column(sq.Alias(countExp, "total_requests")).
 		Column(sq.Alias(responseByteSumExp, "total_bytes")).
 		Column(sq.Alias(hitSumExp, "hit_count")).
 		Column(dateQuery).
 		From("publisher_data").
-		GroupBy("name").
-		ToSql()
+		GroupBy("name")
 
-	return generateQueryWithDate(query, args)
+	return generateStringQuery(query)
 }
 
-func HostQuery(queryParams map[string]string) string {
-	stringDate := getDateString(queryParams)
+func QuintypeIODataQuery(queryParams map[string]string) (string, error) {
+	// query := "select clientrequesthost AS publisher_name, count(clientrequesthost) as total_requests, sum(edgeresponsebytes) as total_bytes, sum(case when cachecachestatus = 'hit' then 1 else 0 end) as hit_count, '2018-12-17' AS date FROM qt_cloudflare_logs.quintype_io WHERE clientrequesturi NOT LIKE '%/?uptime%' AND clientrequesturi NOT LIKE '%ping%' AND month = 12 AND year = 2018 AND day = 17 GROUP BY  clientrequesthost;"
 
-	caseQuery := sq.Case().
-		When("split_part(clientrequesthost, '.', 1) = 'www'", "split_part(clientrequesthost, '.', 2)").
-		When("split_part(clientrequesthost, '.', 1) = 'beta'", "split_part(clientrequesthost, '.', 2)").
-		When("split_part(clientrequesthost, '.', 1) = 'fit' OR split_part(clientrequesthost, '.', 1) = 'hindi'", "concat(split_part(clientrequesthost, '.', 1), '.', split_part(clientrequesthost, '.', 2))").
-		Else("split_part(clientrequesthost, '.', 1)")
+	stringDate := getDateString(queryParams)
 
 	reqCountExp := sq.Expr("count(clientrequesthost)")
 	resByteSumExp := sq.Expr("sum(edgeresponsebytes)")
@@ -102,21 +113,21 @@ func HostQuery(queryParams map[string]string) string {
 		sq.Eq{"month": queryParams["month"]},
 		sq.Eq{"day": queryParams["day"]}}
 
-	query, args, _ := sq.Select().
-		Column(sq.Alias(caseQuery, "publisher_name")).
+	query := sq.Select().
+		Column("clientrequesthost AS publisher_name").
 		Column(sq.Alias(reqCountExp, "total_requests")).
 		Column(sq.Alias(resByteSumExp, "total_bytes")).
 		Column(sq.Alias(hitSumExp, "hit_count")).
 		Column(sq.Alias(dateExp, "date")).
 		From("qt_cloudflare_logs.quintype_io").Where(whereClause).
-		GroupBy("clientrequesthost").
-		PlaceholderFormat(sq.Dollar).
-		ToSql()
+		GroupBy("clientrequesthost")
 
-	return generateQueryWithDate(query, args)
+	return generateStringQuery(query)
 }
 
-func UncachedQuery(queryParams map[string]string) string {
+func VarnishDataQuery(queryParams map[string]string) (string, error) {
+	// query := "SELECT split_part(request_url,'/', 3) AS publisher_name, count(*) AS total_uncached_requests, '2018-12-17' AS date FROM alb.prod_qtproxy_varnish_internal WHERE year = '2018' AND month = '12' AND day = '17' and request_url IS NOT NULL GROUP BY split_part(request_url, '/', 3);"
+
 	stringDate := getDateString(queryParams)
 
 	dateQuery := fmt.Sprint(stringDate, " AS date")
@@ -130,15 +141,13 @@ func UncachedQuery(queryParams map[string]string) string {
 		sq.Eq{"day": dayString},
 		sq.NotEq{"request_url": nil}}
 
-	query, args, _ := sq.Select().
-		Column("split_part(split_part(request_url,'/', 3), '.', 1) AS publisher_name").
+	query := sq.Select().
+		Column("split_part(request_url,'/', 3) AS publisher_name").
 		Column("count(*) as total_uncached_requests").
 		Column(dateQuery).
 		From("alb.prod_qtproxy_varnish_internal").
 		Where(whereClause).
-		GroupBy("split_part(split_part(request_url, '/', 3), '.', 1)").
-		PlaceholderFormat(sq.Dollar).
-		ToSql()
+		GroupBy("split_part(request_url, '/', 3)")
 
-	return generateQueryWithDate(query, args)
+	return generateStringQuery(query)
 }
