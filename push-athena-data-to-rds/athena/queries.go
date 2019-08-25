@@ -2,6 +2,7 @@ package athena
 
 import (
 	"fmt"
+	"push-athena-data-to-rds/types"
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
@@ -15,11 +16,16 @@ func getDateString(params map[string]string) string {
 	return strDate
 }
 
-func generateStringQuery(query sq.SelectBuilder) (string, error) {
+func generateStringQuery(query sq.SelectBuilder) (string, types.ErrorMessage) {
+	var errMsg types.ErrorMessage
 	stringQuery, args, err := query.PlaceholderFormat(sq.Dollar).ToSql()
 
 	if err != nil {
-		return "", err
+		errMsg := types.ErrorMessage{
+			Message: "Error forming the query",
+			Err:     err,
+		}
+		return "", errMsg
 	}
 
 	for i := 1; i <= len(args); i++ {
@@ -31,10 +37,10 @@ func generateStringQuery(query sq.SelectBuilder) (string, error) {
 		tempQuery := strings.Replace(stringQuery, placeHolderString, newString, 1)
 		stringQuery = tempQuery
 	}
-	return stringQuery, nil
+	return stringQuery, errMsg
 }
 
-func AssetypeDataQuery(queryParams map[string]string) (string, error) {
+func AssetypeDataQuery(queryParams map[string]string) (string, types.ErrorMessage) {
 	// query := "WITH request(url, cache_status, response_byte) AS (SELECT CASE WHEN split_part(clientrequesturi, '/', 2 ) = 'pdf' THEN split_part (clientrequesturi, '/', 3 ) ELSE split_part(clientrequesturi, '/', 2 ) END, cachecachestatus, edgeresponsebytes FROM qt_cloudflare_logs.assettype_com WHERE month = 12 AND year = 2018 AND day = 17), publisher_data(name, cache_status, response_byte) AS (SELECT CASE WHEN position('%' IN url) > 0 THEN split_part(url, '%', 1) ELSE url END, cache_status, response_byte FROM request) SELECT name, count(*) AS total_requests, sum(response_byte) AS total_bytes, sum(case WHEN cache_status = 'hit' THEN 1 ELSE 0 end) AS hit_count, '2018-12-17' AS date FROM publisher_data GROUP BY  name;"
 
 	stringDate := getDateString(queryParams)
@@ -69,15 +75,17 @@ func AssetypeDataQuery(queryParams map[string]string) (string, error) {
 		From("request").
 		Suffix(")")
 
-	requestStringQuery, requestErr := generateStringQuery(requestSubQuery)
+	requestStringQuery, requestErrMsg := generateStringQuery(requestSubQuery)
+	reqErr := &requestErrMsg.Err
 
-	if requestErr != nil {
-		return "", requestErr
+	if reqErr != nil {
+		return "", requestErrMsg
 	}
-	publisherDataStringQuery, publisherDataErrr := generateStringQuery(publisherDataSubQuery)
+	publisherDataStringQuery, publisherDataErrMsg := generateStringQuery(publisherDataSubQuery)
+	pubDataErr := &publisherDataErrMsg.Err
 
-	if publisherDataErrr != nil {
-		return "", publisherDataErrr
+	if pubDataErr != nil {
+		return "", publisherDataErrMsg
 	}
 
 	countExp := sq.Expr("count(*)")
@@ -97,7 +105,7 @@ func AssetypeDataQuery(queryParams map[string]string) (string, error) {
 	return generateStringQuery(query)
 }
 
-func QuintypeIODataQuery(queryParams map[string]string) (string, error) {
+func QuintypeIODataQuery(queryParams map[string]string) (string, types.ErrorMessage) {
 	// query := "select clientrequesthost AS publisher_name, count(clientrequesthost) as total_requests, sum(edgeresponsebytes) as total_bytes, sum(case when cachecachestatus = 'hit' then 1 else 0 end) as hit_count, '2018-12-17' AS date FROM qt_cloudflare_logs.quintype_io WHERE clientrequesturi NOT LIKE '%/?uptime%' AND clientrequesturi NOT LIKE '%ping%' AND month = 12 AND year = 2018 AND day = 17 GROUP BY  clientrequesthost;"
 
 	stringDate := getDateString(queryParams)
@@ -125,7 +133,7 @@ func QuintypeIODataQuery(queryParams map[string]string) (string, error) {
 	return generateStringQuery(query)
 }
 
-func VarnishDataQuery(queryParams map[string]string) (string, error) {
+func VarnishDataQuery(queryParams map[string]string) (string, types.ErrorMessage) {
 	// query := "SELECT split_part(request_url,'/', 3) AS publisher_name, count(*) AS total_uncached_requests, '2018-12-17' AS date FROM alb.prod_qtproxy_varnish_internal WHERE year = '2018' AND month = '12' AND day = '17' and request_url IS NOT NULL GROUP BY split_part(request_url, '/', 3);"
 
 	stringDate := getDateString(queryParams)

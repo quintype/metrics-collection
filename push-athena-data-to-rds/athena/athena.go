@@ -2,17 +2,13 @@ package athena
 
 import (
 	"fmt"
+	"push-athena-data-to-rds/types"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/athena"
 )
-
-type errorMessage struct {
-	message string
-	err     error
-}
 
 func startAthenaQuery(athenaClient *athena.Athena, athenaQuery string, athenaDBName string, S3Location string) (*athena.StartQueryExecutionOutput, error) {
 	var query athena.StartQueryExecutionInput
@@ -30,15 +26,14 @@ func startAthenaQuery(athenaClient *athena.Athena, athenaQuery string, athenaDBN
 	return athenaClient.StartQueryExecution(&query)
 }
 
-func runAthenaQuery(athenaClient *athena.Athena, queryInput athena.GetQueryExecutionInput) errorMessage {
+func runAthenaQuery(athenaClient *athena.Athena, queryInput athena.GetQueryExecutionInput) types.ErrorMessage {
 	duration := time.Duration(2) * time.Second
-	var exectionMessage errorMessage
+	var exectionMessage types.ErrorMessage
 
 	for {
 		queryOutput, executionErr := athenaClient.GetQueryExecution(&queryInput)
 		if executionErr != nil {
-			exectionMessage.message = "Error Executing Athena Query"
-			exectionMessage.err = executionErr
+			exectionMessage = types.ErrorMessage{Message: "Error Executing Athena Query", Err: executionErr}
 			return exectionMessage
 		}
 		if *queryOutput.QueryExecution.Status.State != "RUNNING" {
@@ -57,24 +52,20 @@ func runAthenaQuery(athenaClient *athena.Athena, queryInput athena.GetQueryExecu
 		_, err := athenaClient.GetQueryResults(&resultInput)
 
 		if err != nil {
-			fmt.Println(err)
-			exectionMessage.message = "Error fetching the query results"
-			exectionMessage.err = err
+			exectionMessage = types.ErrorMessage{Message: "Error fetching the query results", Err: err}
 			return exectionMessage
 		}
 
-		exectionMessage.message = "Successfully executed the query."
+		exectionMessage = types.ErrorMessage{Message: "Successfully executed the query.", Err: nil}
 
 		return exectionMessage
 	}
-	fmt.Println(*queryOutput.QueryExecution.Status.State)
-	exectionMessage.message = "Error Executing Athena Query"
-	exectionMessage.err = executionErr
+	exectionMessage = types.ErrorMessage{Message: "Error Executing Athena Query", Err: executionErr}
 	return exectionMessage
 }
 
-func SaveDataToS3(athenaQuery string, athenaDBName string, S3Location string) (string, errorMessage) {
-	var errorMessage errorMessage
+func SaveDataToS3(athenaQuery string, athenaDBName string, S3Location string) (string, types.ErrorMessage) {
+	var errorMessage types.ErrorMessage
 
 	awsConfig := &aws.Config{}
 	awsConfig.WithRegion("us-east-1")
@@ -91,7 +82,7 @@ func SaveDataToS3(athenaQuery string, athenaDBName string, S3Location string) (s
 
 	exectionResult := runAthenaQuery(newAthenaClient, queryInput)
 
-	if exectionResult.err != nil {
+	if exectionResult.Err != nil {
 		return "", exectionResult
 	}
 
