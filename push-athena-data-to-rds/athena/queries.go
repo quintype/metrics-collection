@@ -45,6 +45,8 @@ func AssetypeDataQuery(queryParams map[string]string) (string, types.ErrorMessag
 
 	stringDate := getDateString(queryParams)
 
+	fmt.Println(stringDate)
+
 	requestCaseQuery := sq.Case().
 		When("split_part(clientrequesturi, '/', 2) = 'pdf'", "split_part(clientrequesturi, '/', 3)").
 		Else("split_part(clientrequesturi, '/', 2)")
@@ -76,13 +78,13 @@ func AssetypeDataQuery(queryParams map[string]string) (string, types.ErrorMessag
 		Suffix(")")
 
 	requestStringQuery, requestErrMsg := generateStringQuery(requestSubQuery)
-	reqErr := &requestErrMsg.Err
+	reqErr := requestErrMsg.Err
 
 	if reqErr != nil {
 		return "", requestErrMsg
 	}
 	publisherDataStringQuery, publisherDataErrMsg := generateStringQuery(publisherDataSubQuery)
-	pubDataErr := &publisherDataErrMsg.Err
+	pubDataErr := publisherDataErrMsg.Err
 
 	if pubDataErr != nil {
 		return "", publisherDataErrMsg
