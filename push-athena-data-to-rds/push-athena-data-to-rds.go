@@ -6,7 +6,6 @@ import (
 	"os"
 	"push-athena-data-to-rds/athena"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
