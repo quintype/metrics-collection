@@ -83,7 +83,7 @@ func getQueryParams() map[string]string {
 
 	inputDate := os.Getenv("DATE")
 
-	if len(inputDate) < 0 {
+	if len(inputDate) < 11 {
 		dateYear, dateMonth, dateDay := time.Now().Date()
 		monthNumber := int(dateMonth)
 
@@ -94,13 +94,23 @@ func getQueryParams() map[string]string {
 		}
 
 	} else {
-		date := os.Getenv("DATE")
-		splitDate := strings.Split(date, "-")
+		fmt.Println("called")
+		// date := os.Getenv("DATE")
+		// splitDate := strings.Split(date, "-")
+
+		// queryParams = map[string]string{
+		// 	"year":  splitDate[0],
+		// 	"month": splitDate[1],
+		// 	"day":   splitDate[2],
+		// }
+
+		dateYear, dateMonth, dateDay := time.Now().Date()
+		monthNumber := int(dateMonth)
 
 		queryParams = map[string]string{
-			"year":  splitDate[0],
-			"month": splitDate[1],
-			"day":   splitDate[2],
+			"year":  strconv.Itoa(dateYear),
+			"month": strconv.Itoa(monthNumber),
+			"day":   strconv.Itoa(dateDay),
 		}
 	}
 	return queryParams
