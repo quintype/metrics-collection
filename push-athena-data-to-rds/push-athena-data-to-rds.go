@@ -79,7 +79,9 @@ func getQueryParams() map[string]string {
 	var queryParams map[string]string
 	_, isDatePresent := os.LookupEnv("DATE")
 
-	if !isDatePresent && os.Getenv("DATE") == "" {
+	fmt.Println(isDatePresent)
+
+	if os.Getenv("DATE") == "" {
 		dateYear, dateMonth, dateDay := time.Now().Date()
 		monthNumber := int(dateMonth)
 
