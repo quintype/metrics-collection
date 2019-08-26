@@ -75,27 +75,35 @@ func getVarnishDataFromAthena(queryParams map[string]string) string {
 	return s3FileName
 }
 
-func runProcesses() {
+func getQueryParams() map[string]string {
 	var queryParams map[string]string
-
 	_, isDatePresent := os.LookupEnv("DATE")
 
-	if isDatePresent && os.Getenv("DATE") == "" {
+	if !isDatePresent && os.Getenv("DATE") == "" {
 		dateYear, dateMonth, dateDay := time.Now().Date()
 		monthNumber := int(dateMonth)
 
-		queryParams["year"] = strconv.Itoa(dateYear)
-		queryParams["month"] = strconv.Itoa(monthNumber)
-		queryParams["day"] = strconv.Itoa(dateDay)
+		queryParams = map[string]string{
+			"year":  strconv.Itoa(dateYear),
+			"month": strconv.Itoa(monthNumber),
+			"day":   strconv.Itoa(dateDay),
+		}
 
 	} else {
 		date := os.Getenv("DATE")
 		splitDate := strings.Split(date, "-")
 
-		queryParams["year"] = splitDate[0]
-		queryParams["month"] = splitDate[1]
-		queryParams["day"] = splitDate[2]
+		queryParams = map[string]string{
+			"year":  splitDate[0],
+			"month": splitDate[1],
+			"day":   splitDate[2],
+		}
 	}
+	return queryParams
+}
+
+func runProcesses() {
+	queryParams := getQueryParams()
 
 	getAssettypeDataFromAthena(queryParams)
 	getQuintypeIODataFromAthena(queryParams)
