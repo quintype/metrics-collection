@@ -81,7 +81,9 @@ func getQueryParams() map[string]string {
 
 	fmt.Println(isDatePresent)
 
-	if os.Getenv("DATE") == "" {
+	inputDate := os.Getenv("DATE")
+
+	if len(inputDate) < 0 {
 		dateYear, dateMonth, dateDay := time.Now().Date()
 		monthNumber := int(dateMonth)
 
