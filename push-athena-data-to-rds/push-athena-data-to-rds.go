@@ -98,11 +98,24 @@ func getQueryParams() map[string]string {
 	} else {
 		dateYear, dateMonth, dateDay := time.Now().Date()
 		monthNumber := int(dateMonth)
+		var strMonth, strDay string
+
+		if monthNumber >= 1 && monthNumber <= 9 {
+			strMonth = fmt.Sprint("0", strconv.Itoa(monthNumber))
+		} else {
+			strMonth = strconv.Itoa(monthNumber)
+		}
+
+		if dateDay >= 1 && dateDay <= 9 {
+			strDay = fmt.Sprint("0", strconv.Itoa(dateDay))
+		} else {
+			strDay = strconv.Itoa(dateDay)
+		}
 
 		queryParams = map[string]string{
 			"year":  strconv.Itoa(dateYear),
-			"month": strconv.Itoa(monthNumber),
-			"day":   strconv.Itoa(dateDay),
+			"month": strMonth,
+			"day":   strDay,
 		}
 	}
 	return queryParams

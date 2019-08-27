@@ -46,6 +46,8 @@ func runAthenaQuery(athenaClient *athena.Athena, queryInput athena.GetQueryExecu
 
 	queryOutput, executionErr := athenaClient.GetQueryExecution(&queryInput)
 
+	fmt.Println(queryOutput)
+
 	if *queryOutput.QueryExecution.Status.State == "SUCCEEDED" {
 		var resultInput athena.GetQueryResultsInput
 		resultInput.SetQueryExecutionId(*queryInput.QueryExecutionId)
