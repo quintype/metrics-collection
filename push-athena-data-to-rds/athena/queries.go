@@ -13,6 +13,8 @@ func getDateString(params map[string]string) string {
 
 	strDate := strings.Join(date, "-")
 
+	fmt.Println("date for query", strDate)
+
 	return strDate
 }
 

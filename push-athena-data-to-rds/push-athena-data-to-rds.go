@@ -81,11 +81,16 @@ func getQueryParams() map[string]string {
 	_, isDatePresent := os.LookupEnv("DATE")
 
 	if isDatePresent {
+		fmt.Println("called input")
 		inputDate := os.Getenv("DATE")
 		isValidDate := utils.ValidateDate(inputDate)
 
+		fmt.Println(inputDate, isValidDate)
+
 		if isValidDate {
 			splitDate := strings.Split(inputDate, "-")
+
+			fmt.Println(splitDate)
 
 			queryParams = map[string]string{
 				"year":  splitDate[0],
@@ -98,6 +103,8 @@ func getQueryParams() map[string]string {
 	} else {
 		dateYear, dateMonth, dateDay := time.Now().Date()
 		monthNumber := int(dateMonth)
+
+		fmt.Println("called now", strconv.Itoa(dateYear), strconv.Itoa(monthNumber), strconv.Itoa(dateDay))
 
 		queryParams = map[string]string{
 			"year":  strconv.Itoa(dateYear),
