@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"push-athena-data-to-rds/athena"
+	"push-athena-data-to-rds/utils"
 	"strconv"
 	"strings"
 	"time"
@@ -17,10 +18,6 @@ func getAssettypeDataFromAthena(queryParams map[string]string) string {
 	s3Location := "s3://aws-athena-query-results-687145066723-us-east-1/boto3/cloudflare/billing-test-data/assettype"
 
 	query, queryErrMsg := athena.AssetypeDataQuery(queryParams)
-
-	fmt.Println(queryParams)
-
-	fmt.Println(query)
 
 	if queryErrMsg.Err != nil {
 		fmt.Println(queryErrMsg.Message, queryErrMsg.Err)
@@ -83,11 +80,22 @@ func getQueryParams() map[string]string {
 	var queryParams map[string]string
 	_, isDatePresent := os.LookupEnv("DATE")
 
-	fmt.Println(isDatePresent)
+	if isDatePresent {
+		inputDate := os.Getenv("DATE")
+		isValidDate := utils.ValidateDate(inputDate)
 
-	inputDate := os.Getenv("DATE")
+		if isValidDate {
+			splitDate := strings.Split(inputDate, "-")
 
-	if len(inputDate) < 11 {
+			queryParams = map[string]string{
+				"year":  splitDate[0],
+				"month": splitDate[1],
+				"day":   splitDate[2],
+			}
+		} else {
+			fmt.Println("Invalid Date Entered")
+		}
+	} else {
 		dateYear, dateMonth, dateDay := time.Now().Date()
 		monthNumber := int(dateMonth)
 
@@ -96,18 +104,6 @@ func getQueryParams() map[string]string {
 			"month": strconv.Itoa(monthNumber),
 			"day":   strconv.Itoa(dateDay),
 		}
-
-	} else {
-		fmt.Println("called")
-		date := os.Getenv("DATE")
-		splitDate := strings.Split(date, "-")
-
-		queryParams = map[string]string{
-			"year":  splitDate[0],
-			"month": splitDate[1],
-			"day":   splitDate[2],
-		}
-
 	}
 	return queryParams
 }

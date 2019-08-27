@@ -45,8 +45,6 @@ func AssetypeDataQuery(queryParams map[string]string) (string, types.ErrorMessag
 
 	stringDate := getDateString(queryParams)
 
-	fmt.Println(stringDate)
-
 	requestCaseQuery := sq.Case().
 		When("split_part(clientrequesturi, '/', 2) = 'pdf'", "split_part(clientrequesturi, '/', 3)").
 		Else("split_part(clientrequesturi, '/', 2)")
