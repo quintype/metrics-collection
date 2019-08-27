@@ -21,6 +21,8 @@ func startAthenaQuery(athenaClient *athena.Athena, athenaQuery string, athenaDBN
 
 	query.SetQueryString(athenaQuery)
 	query.SetQueryExecutionContext(&database)
+
+	fmt.Println(resultLocation)
 	query.SetResultConfiguration(&resultLocation)
 
 	return athenaClient.StartQueryExecution(&query)
@@ -44,6 +46,8 @@ func runAthenaQuery(athenaClient *athena.Athena, queryInput athena.GetQueryExecu
 	}
 
 	queryOutput, executionErr := athenaClient.GetQueryExecution(&queryInput)
+	fmt.Println("output debugging")
+	fmt.Println(queryOutput)
 
 	if *queryOutput.QueryExecution.Status.State == "SUCCEEDED" {
 		var resultInput athena.GetQueryResultsInput
