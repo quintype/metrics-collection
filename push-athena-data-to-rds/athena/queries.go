@@ -13,8 +13,6 @@ func getDateString(params map[string]string) string {
 
 	strDate := strings.Join(date, "-")
 
-	fmt.Println("date for query", strDate)
-
 	return strDate
 }
 
@@ -60,7 +58,7 @@ func AssetypeDataQuery(queryParams map[string]string) (string, types.ErrorMessag
 		sq.Eq{"day": queryParams["day"]},
 		sq.Eq{"edgeresponsestatus": "200"}}
 
-	dateQuery := fmt.Sprint(stringDate, " as date")
+	dateQuery := fmt.Sprint("'", stringDate, "' as date")
 
 	requestSubQuery := sq.Select().
 		Prefix("WITH request(url, cache_status, response_byte) AS (").
@@ -115,7 +113,8 @@ func QuintypeIODataQuery(queryParams map[string]string) (string, types.ErrorMess
 	reqCountExp := sq.Expr("count(clientrequesthost)")
 	resByteSumExp := sq.Expr("sum(edgeresponsebytes)")
 	hitSumExp := sq.Expr("sum(case when cachecachestatus = 'hit' then 1 else 0 end)")
-	dateExp := sq.Expr(stringDate)
+
+	dateQuery := fmt.Sprint("'", stringDate, "' as date")
 
 	whereClause := sq.And{sq.NotLike{"clientrequesturi": fmt.Sprint("'", "%/?uptime%", "'")},
 		sq.NotLike{"clientrequesturi": fmt.Sprint("'", "%ping%", "'")},
@@ -128,7 +127,7 @@ func QuintypeIODataQuery(queryParams map[string]string) (string, types.ErrorMess
 		Column(sq.Alias(reqCountExp, "total_requests")).
 		Column(sq.Alias(resByteSumExp, "total_bytes")).
 		Column(sq.Alias(hitSumExp, "hit_count")).
-		Column(sq.Alias(dateExp, "date")).
+		Column(dateQuery).
 		From("qt_cloudflare_logs.quintype_io").Where(whereClause).
 		GroupBy("clientrequesthost")
 
@@ -140,7 +139,7 @@ func VarnishDataQuery(queryParams map[string]string) (string, types.ErrorMessage
 
 	stringDate := getDateString(queryParams)
 
-	dateQuery := fmt.Sprint(stringDate, " AS date")
+	dateQuery := fmt.Sprint("'", stringDate, "' as date")
 
 	yearString := fmt.Sprint("'", queryParams["year"], "'")
 	monthString := fmt.Sprint("'", queryParams["month"], "'")
