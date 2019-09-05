@@ -41,7 +41,7 @@ func generateStringQuery(query sq.SelectBuilder) (string, types.ErrorMessage) {
 }
 
 func AssetypeDataQuery(queryParams map[string]string) (string, types.ErrorMessage) {
-	// query := "WITH request(url, cache_status, response_byte) AS (SELECT CASE WHEN split_part(clientrequesturi, '/', 2 ) = 'pdf' THEN split_part (clientrequesturi, '/', 3 ) ELSE split_part(clientrequesturi, '/', 2 ) END, cachecachestatus, edgeresponsebytes FROM qt_cloudflare_logs.assettype_com WHERE month = 12 AND year = 2018 AND day = 17), publisher_data(publisher_name, cache_status, response_byte) AS (SELECT CASE WHEN position('%' IN url) > 0 THEN split_part(url, '%', 1) ELSE url END, cache_status, response_byte FROM request) SELECT publisher_name, count(*) AS total_requests, sum(response_byte) AS total_bytes, sum(case WHEN cache_status = 'hit' THEN 1 ELSE 0 end) AS hit_count, '2018-12-17' AS date FROM publisher_data GROUP BY  name;"
+	// query := "WITH request(url, cache_status, response_byte) AS (SELECT CASE WHEN split_part(clientrequesturi, '/', 2 ) = 'pdf' THEN split_part (clientrequesturi, '/', 3 ) ELSE split_part(clientrequesturi, '/', 2 ) END, cachecachestatus, edgeresponsebytes FROM qt_cloudflare_logs.assettype_com WHERE month = 12 AND year = 2018 AND day = 17), publisher_data(name, cache_status, response_byte) AS (SELECT CASE WHEN position('%' IN url) > 0 THEN split_part(url, '%', 1) ELSE url END, cache_status, response_byte FROM request) SELECT publisher_name, count(*) AS total_requests, sum(response_byte) AS total_bytes, sum(case WHEN cache_status = 'hit' THEN 1 ELSE 0 end) AS hit_count, '2018-12-17' AS date FROM publisher_data GROUP BY  name;"
 
 	stringDate := getDateString(queryParams)
 
@@ -92,9 +92,10 @@ func AssetypeDataQuery(queryParams map[string]string) (string, types.ErrorMessag
 	hitSumExp := sq.Expr("sum(case WHEN cache_status = 'hit' THEN 1 ELSE 0 end)")
 	responseByteSumExp := sq.Expr("sum(response_byte)")
 
-	query := sq.Select("publisher_name").
+	query := sq.Select().
 		Prefix(requestStringQuery).
 		Prefix(publisherDataStringQuery).
+		Column("name AS publisher_name").
 		Column(sq.Alias(countExp, "total_requests")).
 		Column(sq.Alias(responseByteSumExp, "total_bytes")).
 		Column(sq.Alias(hitSumExp, "hit_count")).
