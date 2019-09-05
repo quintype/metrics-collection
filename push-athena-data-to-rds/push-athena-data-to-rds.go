@@ -96,7 +96,7 @@ func getQueryParams() map[string]string {
 			fmt.Println("Invalid Date Entered")
 		}
 	} else {
-		dateYear, dateMonth, dateDay := time.Now().Date()
+		dateYear, dateMonth, dateDay := time.Now().AddDate(0, 0, -1).Date()
 		monthNumber := int(dateMonth)
 		var strMonth, strDay string
 
