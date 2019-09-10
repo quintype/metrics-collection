@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"push-athena-data-to-rds/api"
 	"push-athena-data-to-rds/athena"
 	"push-athena-data-to-rds/utils"
 	"strconv"
@@ -13,67 +14,58 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-func getAssettypeDataFromAthena(queryParams map[string]string) string {
-	dbName := "qt_cloudflare_logs"
-	s3Location := "s3://aws-athena-query-results-687145066723-us-east-1/boto3/cloudflare/billing-test-data/assettype"
+func getAssettypeDataFromAthena(athenaDBName string, s3Location string, queryParams map[string]string) {
+	completeS3Location := fmt.Sprint(s3Location, "/assettype")
 
 	query, queryErrMsg := athena.AssetypeDataQuery(queryParams)
 
 	if queryErrMsg.Err != nil {
 		fmt.Println(queryErrMsg.Message, queryErrMsg.Err)
-		return ""
 	}
 
-	s3FileName, athenaErrMsg := athena.SaveDataToS3(query, dbName, s3Location)
+	s3FileName, athenaErrMsg := athena.SaveDataToS3(query, athenaDBName, completeS3Location)
 
 	if athenaErrMsg.Err != nil {
 		fmt.Println(athenaErrMsg.Message, athenaErrMsg.Err)
-		return ""
 	}
 
-	return s3FileName
+	api.SaveAthenaData(s3FileName, "assettype")
 }
 
-func getQuintypeIODataFromAthena(queryParams map[string]string) string {
-	dbName := "qt_cloudflare_logs"
-	s3Location := "s3://aws-athena-query-results-687145066723-us-east-1/boto3/cloudflare/billing-test-data/host"
+func getQuintypeIODataFromAthena(athenaDBName string, s3Location string, queryParams map[string]string) {
+	completeS3Location := fmt.Sprint(s3Location, "/host")
 
 	query, queryErrMsg := athena.QuintypeIODataQuery(queryParams)
 
 	if queryErrMsg.Err != nil {
 		fmt.Println(queryErrMsg.Message, queryErrMsg.Err)
-		return ""
 	}
 
-	s3FileName, athenaErrMsg := athena.SaveDataToS3(query, dbName, s3Location)
+	s3FileName, athenaErrMsg := athena.SaveDataToS3(query, athenaDBName, completeS3Location)
 
 	if athenaErrMsg.Err != nil {
 		fmt.Println(athenaErrMsg.Message, athenaErrMsg.Err)
-		return ""
 	}
 
-	return s3FileName
+	api.SaveAthenaData(s3FileName, "host")
 }
 
-func getVarnishDataFromAthena(queryParams map[string]string) string {
-	dbName := "alb"
-	s3Location := "s3://aws-athena-query-results-687145066723-us-east-1/boto3/cloudflare/billing-test-data/uncached"
+func getVarnishDataFromAthena(athenaDBName string, s3Location string, queryParams map[string]string) {
+	completeS3Location := fmt.Sprint(s3Location, "/varnish")
 
 	query, queryErrMsg := athena.VarnishDataQuery(queryParams)
 
 	if queryErrMsg.Err != nil {
 		fmt.Println(queryErrMsg.Message, queryErrMsg.Err)
-		return ""
 	}
 
-	s3FileName, athenaErrMsg := athena.SaveDataToS3(query, dbName, s3Location)
+	s3FileName, athenaErrMsg := athena.SaveDataToS3(query, athenaDBName, completeS3Location)
 
 	if athenaErrMsg.Err != nil {
 		fmt.Println(athenaErrMsg.Message, athenaErrMsg.Err)
-		return ""
 	}
 
-	return s3FileName
+	api.SaveAthenaData(s3FileName, "varnish")
 }
 
 func getQueryParams() map[string]string {
@@ -122,11 +114,21 @@ func getQueryParams() map[string]string {
 }
 
 func runProcesses() {
-	queryParams := getQueryParams()
+	_, isBucketNamePresent := os.LookupEnv("BUCKET_NAME")
+	_, isS3PathPresent := os.LookupEnv("S3_FILE_PATH")
+	_, isBadgerHost := os.LookupEnv("APP_HOST")
 
-	getAssettypeDataFromAthena(queryParams)
-	getQuintypeIODataFromAthena(queryParams)
-	getVarnishDataFromAthena(queryParams)
+	if isS3PathPresent && isBucketNamePresent && isBadgerHost {
+		queryParams := getQueryParams()
+
+		s3Location := utils.GenerateS3Location(os.Getenv("BUCKET_NAME"), os.Getenv("S3_FILE_PATH"))
+
+		getAssettypeDataFromAthena("qt_cloudflare_logs", s3Location, queryParams)
+		getQuintypeIODataFromAthena("qt_cloudflare_logs", s3Location, queryParams)
+		getVarnishDataFromAthena("alb", s3Location, queryParams)
+	} else {
+		fmt.Println("Enter correct BUCKET_NAME, S3_FILE_PATH and APP_HOST")
+	}
 }
 
 func lambdaHandler(ctx context.Context) {

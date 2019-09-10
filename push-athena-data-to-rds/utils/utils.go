@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"regexp"
 	"time"
 )
@@ -20,4 +21,8 @@ func ValidateDate(date string) bool {
 		notFutureDate(date)
 	}
 	return dateRegex.MatchString(date)
+}
+
+func GenerateS3Location(bucketName, s3FilePath string) string {
+	return fmt.Sprint("s3://", bucketName, "/", s3FilePath)
 }
