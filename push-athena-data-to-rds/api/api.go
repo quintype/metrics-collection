@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 )
 
 func SaveAthenaData(s3FileName, dataSource string) {
@@ -20,7 +21,14 @@ func SaveAthenaData(s3FileName, dataSource string) {
 		"dataSource": {dataSource},
 	}
 
-	res, err := http.PostForm(postURL, formData)
+	client := &http.Client{}
+
+	req, err := http.NewRequest("POST", postURL, strings.NewReader(formData.Encode()))
+
+	req.Header.Add("x-badger-auth", os.Getenv("APP_AUTH"))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	res, err := client.Do(req)
 
 	if err != nil {
 		fmt.Println(err)
