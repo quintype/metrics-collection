@@ -13,5 +13,6 @@
 
 # Specific Binaries
 /push-alb-stats-to-app-optics/push-alb-stats-to-app-optics
+/push-athena-data-to-rds/push-athena-data-to-rds
 
 *.zip

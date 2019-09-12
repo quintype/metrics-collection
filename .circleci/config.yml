@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  build:
+  push-alb-stats-to-app-optics:
     docker:
       - image: circleci/golang:1.11
 
@@ -10,3 +10,21 @@ jobs:
       - store_artifacts:
           path: push-alb-stats-to-app-optics/push-alb-stats-to-app-optics.zip
           destination: push-alb-stats-to-app-optics.zip
+
+  push-athena-data-to-rds:
+    docker:
+      - image: circleci/golang:1.11
+
+    steps:
+      - checkout
+      - run: make -C push-athena-data-to-rds push-athena-data-to-rds.zip
+      - store_artifacts:
+          path: push-athena-data-to-rds/push-athena-data-to-rds.zip
+          destination: push-athena-data-to-rds.zip
+workflows:
+  version: 2
+  build:
+    jobs:
+      - push-alb-stats-to-app-optics
+      - push-athena-data-to-rds
+
