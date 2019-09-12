@@ -40,10 +40,12 @@ func generateStringQuery(query sq.SelectBuilder) (string, types.ErrorMessage) {
 	return stringQuery, errMsg
 }
 
-func AssetypeDataQuery(queryParams map[string]string) (string, types.ErrorMessage) {
+func AssetypeDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
 	// query := "WITH request(url, cache_status, response_byte) AS (SELECT CASE WHEN split_part(clientrequesturi, '/', 2 ) = 'pdf' THEN split_part (clientrequesturi, '/', 3 ) ELSE split_part(clientrequesturi, '/', 2 ) END, cachecachestatus, edgeresponsebytes FROM qt_cloudflare_logs.assettype_com WHERE month = 12 AND year = 2018 AND day = 17), publisher_data(name, cache_status, response_byte) AS (SELECT CASE WHEN position('%' IN url) > 0 THEN split_part(url, '%', 1) ELSE url END, cache_status, response_byte FROM request) SELECT publisher_name, count(*) AS total_requests, sum(response_byte) AS total_bytes, sum(case WHEN cache_status = 'hit' THEN 1 ELSE 0 end) AS hit_count, '2018-12-17' AS date FROM publisher_data GROUP BY  name;"
 
 	stringDate := getDateString(queryParams)
+
+	fromQuery := fmt.Sprint(db, ".", table)
 
 	requestCaseQuery := sq.Case().
 		When("split_part(clientrequesturi, '/', 2) = 'pdf'", "split_part(clientrequesturi, '/', 3)").
@@ -64,7 +66,7 @@ func AssetypeDataQuery(queryParams map[string]string) (string, types.ErrorMessag
 		Prefix("WITH request(url, cache_status, response_byte) AS (").
 		Column(requestCaseQuery).
 		Columns("cachecachestatus", "edgeresponsebytes").
-		From("qt_cloudflare_logs.assettype_com ").
+		From(fromQuery).
 		Where(whereClause).
 		Suffix("),")
 
@@ -106,10 +108,11 @@ func AssetypeDataQuery(queryParams map[string]string) (string, types.ErrorMessag
 	return generateStringQuery(query)
 }
 
-func QuintypeIODataQuery(queryParams map[string]string) (string, types.ErrorMessage) {
+func PrimaryDomainDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
 	// query := "select clientrequesthost AS publisher_name, count(clientrequesthost) as total_requests, sum(edgeresponsebytes) as total_bytes, sum(case when cachecachestatus = 'hit' then 1 else 0 end) as hit_count, '2018-12-17' AS date FROM qt_cloudflare_logs.quintype_io WHERE clientrequesturi NOT LIKE '%/?uptime%' AND clientrequesturi NOT LIKE '%ping%' AND month = 12 AND year = 2018 AND day = 17 GROUP BY  clientrequesthost;"
 
 	stringDate := getDateString(queryParams)
+	fromQuery := fmt.Sprint(db, ".", table)
 
 	reqCountExp := sq.Expr("count(clientrequesthost)")
 	resByteSumExp := sq.Expr("sum(edgeresponsebytes)")
@@ -129,16 +132,17 @@ func QuintypeIODataQuery(queryParams map[string]string) (string, types.ErrorMess
 		Column(sq.Alias(resByteSumExp, "total_bytes")).
 		Column(sq.Alias(hitSumExp, "hit_count")).
 		Column(dateQuery).
-		From("qt_cloudflare_logs.quintype_io").Where(whereClause).
+		From(fromQuery).Where(whereClause).
 		GroupBy("clientrequesthost")
 
 	return generateStringQuery(query)
 }
 
-func VarnishDataQuery(queryParams map[string]string) (string, types.ErrorMessage) {
+func VarnishDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
 	// query := "SELECT split_part(request_url,'/', 3) AS publisher_name, count(*) AS total_uncached_requests, '2018-12-17' AS date FROM alb.prod_qtproxy_varnish_internal WHERE year = '2018' AND month = '12' AND day = '17' and request_url IS NOT NULL GROUP BY split_part(request_url, '/', 3);"
 
 	stringDate := getDateString(queryParams)
+	fromQuery := fmt.Sprint(db, ".", table)
 
 	dateQuery := fmt.Sprint("'", stringDate, "' as date")
 
@@ -155,7 +159,7 @@ func VarnishDataQuery(queryParams map[string]string) (string, types.ErrorMessage
 		Column("split_part(request_url,'/', 3) AS publisher_name").
 		Column("count(*) as total_uncached_requests").
 		Column(dateQuery).
-		From("alb.prod_qtproxy_varnish_internal").
+		From(fromQuery).
 		Where(whereClause).
 		GroupBy("split_part(request_url, '/', 3)")
 
