@@ -68,6 +68,24 @@ func getVarnishDataFromAthena(athenaDBName string, athenaTableName string, s3Loc
 	api.SaveAthenaData(s3FileName, "varnish")
 }
 
+func getHaproxyDataFromAthena(athenaDBName string, athenaTableName string, s3Location string, queryParams map[string]string) {
+	completeS3Location := fmt.Sprint(s3Location, "/haproxy")
+
+	query, queryErrMsg := athena.HaproxyDataQuery(queryParams, athenaDBName, athenaTableName)
+
+	if queryErrMsg.Err != nil {
+		fmt.Println(queryErrMsg.Message, queryErrMsg.Err)
+	}
+
+	s3FileName, athenaErrMsg := athena.SaveDataToS3(query, athenaDBName, completeS3Location)
+
+	if athenaErrMsg.Err != nil {
+		fmt.Println(athenaErrMsg.Message, athenaErrMsg.Err)
+	}
+
+	api.SaveAthenaData(s3FileName, "haproxy")
+}
+
 func getQueryParams() map[string]string {
 	var queryParams map[string]string
 	_, isDatePresent := os.LookupEnv("DATE")
@@ -123,8 +141,9 @@ func checkVariablesPresence() bool {
 	_, isAssettypeTable := os.LookupEnv("ASSETTYPE_TABLE")
 	_, isPrimaryDomainTable := os.LookupEnv("PRIMARY_DOMAIN_TABLE")
 	_, isVarnishTable := os.LookupEnv("VARNISH_TABLE")
+	_, isHaproxyTable := os.LookupEnv("HAPROXY_TABLE")
 
-	if isS3PathPresent && isBucketNamePresent && isBadgerHost && isBadgerAuth && isCloudflareDB && isAlbDB && isVarnishTable && isAssettypeTable && isPrimaryDomainTable {
+	if isS3PathPresent && isBucketNamePresent && isBadgerHost && isBadgerAuth && isCloudflareDB && isAlbDB && isVarnishTable && isAssettypeTable && isPrimaryDomainTable && isHaproxyTable {
 		return true
 	}
 	return false
@@ -142,8 +161,9 @@ func runProcesses() {
 		getAssettypeDataFromAthena(os.Getenv("CLOUDFLARE_DB"), os.Getenv("ASSETTYPE_TABLE"), s3Location, queryParams)
 		getStatsOnPrimaryDomainFromAthena(os.Getenv("CLOUDFLARE_DB"), os.Getenv("PRIMARY_DOMAIN_TABLE"), s3Location, queryParams)
 		getVarnishDataFromAthena(os.Getenv("ALB_DB"), os.Getenv("VARNISH_TABLE"), s3Location, queryParams)
+		getHaproxyDataFromAthena(os.Getenv("ALB_DB"), os.Getenv("HAPROXY_TABLE"), s3Location, queryParams)
 	} else {
-		fmt.Println("Enter correct BUCKET_NAME, S3_FILE_PATH, APP_HOST, APP_AUTH, CLOUDFLARE_DB, VARNISH_DB, ASSETTYPE_TABLE, PRIMARY_DOMAIN_TABLE, VARNISH_TABLE ")
+		fmt.Println("Enter correct BUCKET_NAME, S3_FILE_PATH, APP_HOST, APP_AUTH, CLOUDFLARE_DB, VARNISH_DB, ASSETTYPE_TABLE, PRIMARY_DOMAIN_TABLE, VARNISH_TABLE, HAPROXY_TABLE")
 	}
 }
 
