@@ -166,7 +166,7 @@ func VarnishDataQuery(queryParams map[string]string, db string, table string) (s
 	return generateStringQuery(query)
 }
 
-func HaproxyDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
+func FrontendHaproxyDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
 	// query := SELECT replace(domain_name, '"', '') AS domain_url, count(domain_name) as total_requests FROM "alb"."prod_haproxy_web" where elb_status_code = '200' and request_url not like '%?uptime%' and request_url not like '%robots.txt%' and request_url not like '%ping%' and month = '10' and year = '2019' and day = '01' group by domain_name;
 
 	stringDate := getDateString(queryParams)

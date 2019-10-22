@@ -68,10 +68,10 @@ func getVarnishDataFromAthena(athenaDBName string, athenaTableName string, s3Loc
 	api.SaveAthenaData(s3FileName, "varnish")
 }
 
-func getHaproxyDataFromAthena(athenaDBName string, athenaTableName string, s3Location string, queryParams map[string]string) {
-	completeS3Location := fmt.Sprint(s3Location, "/haproxy")
+func getFrontendHaproxyDataFromAthena(athenaDBName string, athenaTableName string, s3Location string, queryParams map[string]string) {
+	completeS3Location := fmt.Sprint(s3Location, "/frontend_haproxy")
 
-	query, queryErrMsg := athena.HaproxyDataQuery(queryParams, athenaDBName, athenaTableName)
+	query, queryErrMsg := athena.FrontendHaproxyDataQuery(queryParams, athenaDBName, athenaTableName)
 
 	if queryErrMsg.Err != nil {
 		fmt.Println(queryErrMsg.Message, queryErrMsg.Err)
@@ -83,7 +83,7 @@ func getHaproxyDataFromAthena(athenaDBName string, athenaTableName string, s3Loc
 		fmt.Println(athenaErrMsg.Message, athenaErrMsg.Err)
 	}
 
-	api.SaveAthenaData(s3FileName, "haproxy")
+	api.SaveAthenaData(s3FileName, "frontend_haproxy")
 }
 
 func getQueryParams() map[string]string {
@@ -161,7 +161,7 @@ func runProcesses() {
 		getAssettypeDataFromAthena(os.Getenv("CLOUDFLARE_DB"), os.Getenv("ASSETTYPE_TABLE"), s3Location, queryParams)
 		getStatsOnPrimaryDomainFromAthena(os.Getenv("CLOUDFLARE_DB"), os.Getenv("PRIMARY_DOMAIN_TABLE"), s3Location, queryParams)
 		getVarnishDataFromAthena(os.Getenv("ALB_DB"), os.Getenv("VARNISH_TABLE"), s3Location, queryParams)
-		getHaproxyDataFromAthena(os.Getenv("ALB_DB"), os.Getenv("HAPROXY_TABLE"), s3Location, queryParams)
+		getFrontendHaproxyDataFromAthena(os.Getenv("ALB_DB"), os.Getenv("HAPROXY_TABLE"), s3Location, queryParams)
 	} else {
 		fmt.Println("Enter correct BUCKET_NAME, S3_FILE_PATH, APP_HOST, APP_AUTH, CLOUDFLARE_DB, VARNISH_DB, ASSETTYPE_TABLE, PRIMARY_DOMAIN_TABLE, VARNISH_TABLE, HAPROXY_TABLE")
 	}
