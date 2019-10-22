@@ -165,3 +165,36 @@ func VarnishDataQuery(queryParams map[string]string, db string, table string) (s
 
 	return generateStringQuery(query)
 }
+
+func FrontendHaproxyDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
+	// query := SELECT replace(domain_name, '"', '') AS domain_url, count(domain_name) as total_requests FROM "alb"."prod_haproxy_web" where elb_status_code = '200' and request_url not like '%?uptime%' and request_url not like '%robots.txt%' and request_url not like '%ping%' and month = '10' and year = '2019' and day = '01' group by domain_name;
+
+	stringDate := getDateString(queryParams)
+	fromQuery := fmt.Sprint(db, ".", table)
+
+	dateQuery := fmt.Sprint("'", stringDate, "' as date")
+
+	yearString := fmt.Sprint("'", queryParams["year"], "'")
+	monthString := fmt.Sprint("'", queryParams["month"], "'")
+	dayString := fmt.Sprint("'", queryParams["day"], "'")
+
+	reqCountExp := sq.Expr("count(domain_name)")
+
+	whereClause := sq.And{sq.Eq{"elb_status_code": fmt.Sprint("'", "200", "'")},
+		sq.NotLike{"request_url": fmt.Sprint("'", "%/?uptime%", "'")},
+		sq.NotLike{"request_url": fmt.Sprint("'", "%robots.txt%", "'")},
+		sq.NotLike{"request_url": fmt.Sprint("'", "%ping%", "'")},
+		sq.Eq{"year": yearString},
+		sq.Eq{"month": monthString},
+		sq.Eq{"day": dayString}}
+
+	query := sq.Select().
+		Column("replace(domain_name, '\"', '') AS domain_url").
+		Column(sq.Alias(reqCountExp, "total_requests")).
+		Column(dateQuery).
+		From(fromQuery).
+		Where(whereClause).
+		GroupBy("domain_name")
+
+	return generateStringQuery(query)
+}
