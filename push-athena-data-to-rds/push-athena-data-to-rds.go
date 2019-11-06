@@ -15,7 +15,7 @@ import (
 )
 
 func getAssettypeDataFromAthena(athenaDBName string, athenaTableName string, s3Location string, queryParams map[string]string) {
-	completeS3Location := fmt.Sprint(s3Location, "/assettype")
+	completeS3Location := utils.CompleteS3Location(s3Location, "/assettype", queryParams)
 
 	query, queryErrMsg := athena.AssetypeDataQuery(queryParams, athenaDBName, athenaTableName)
 
@@ -29,11 +29,11 @@ func getAssettypeDataFromAthena(athenaDBName string, athenaTableName string, s3L
 		fmt.Println(athenaErrMsg.Message, athenaErrMsg.Err)
 	}
 
-	api.SaveAthenaData(s3FileName, "assettype")
+	api.SaveAthenaData(s3FileName, queryParams, "assettype")
 }
 
 func getStatsOnPrimaryDomainFromAthena(athenaDBName string, athenaTableName string, s3Location string, queryParams map[string]string) {
-	completeS3Location := fmt.Sprint(s3Location, "/host")
+	completeS3Location := utils.CompleteS3Location(s3Location, "/host", queryParams)
 
 	query, queryErrMsg := athena.PrimaryDomainDataQuery(queryParams, athenaDBName, athenaTableName)
 
@@ -47,11 +47,11 @@ func getStatsOnPrimaryDomainFromAthena(athenaDBName string, athenaTableName stri
 		fmt.Println(athenaErrMsg.Message, athenaErrMsg.Err)
 	}
 
-	api.SaveAthenaData(s3FileName, "host")
+	api.SaveAthenaData(s3FileName, queryParams, "host")
 }
 
 func getVarnishDataFromAthena(athenaDBName string, athenaTableName string, s3Location string, queryParams map[string]string) {
-	completeS3Location := fmt.Sprint(s3Location, "/varnish")
+	completeS3Location := utils.CompleteS3Location(s3Location, "/varnish", queryParams)
 
 	query, queryErrMsg := athena.VarnishDataQuery(queryParams, athenaDBName, athenaTableName)
 
@@ -65,11 +65,11 @@ func getVarnishDataFromAthena(athenaDBName string, athenaTableName string, s3Loc
 		fmt.Println(athenaErrMsg.Message, athenaErrMsg.Err)
 	}
 
-	api.SaveAthenaData(s3FileName, "varnish")
+	api.SaveAthenaData(s3FileName, queryParams, "varnish")
 }
 
 func getFrontendHaproxyDataFromAthena(athenaDBName string, athenaTableName string, s3Location string, queryParams map[string]string) {
-	completeS3Location := fmt.Sprint(s3Location, "/frontend_haproxy")
+	completeS3Location := utils.CompleteS3Location(s3Location, "/frontend_haproxy", queryParams)
 
 	query, queryErrMsg := athena.FrontendHaproxyDataQuery(queryParams, athenaDBName, athenaTableName)
 
@@ -83,7 +83,7 @@ func getFrontendHaproxyDataFromAthena(athenaDBName string, athenaTableName strin
 		fmt.Println(athenaErrMsg.Message, athenaErrMsg.Err)
 	}
 
-	api.SaveAthenaData(s3FileName, "frontend_haproxy")
+	api.SaveAthenaData(s3FileName, queryParams, "frontend_haproxy")
 }
 
 func getQueryParams() map[string]string {

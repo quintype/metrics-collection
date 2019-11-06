@@ -26,3 +26,7 @@ func ValidateDate(date string) bool {
 func GenerateS3Location(bucketName, s3FilePath string) string {
 	return fmt.Sprint("s3://", bucketName, "/", s3FilePath)
 }
+
+func CompleteS3Location(s3Location, dataSource string, dateObject map[string]string) string {
+	return fmt.Sprint(s3Location, "/assettype", "/", dateObject["year"], "/", dateObject["month"], "/", dateObject["day"])
+}
