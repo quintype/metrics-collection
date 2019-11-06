@@ -9,11 +9,11 @@ import (
 	"strings"
 )
 
-func SaveAthenaData(s3FileName, dataSource string) {
+func SaveAthenaData(s3FileName string, queryParams map[string]string, dataSource string) {
 	s3FilePath := os.Getenv("S3_FILE_PATH")
 	appHost := os.Getenv("APP_HOST")
 
-	s3Key := fmt.Sprint(s3FilePath, "/", dataSource, "/", s3FileName, ".csv")
+	s3Key := fmt.Sprint(s3FilePath, "/", dataSource, "/", queryParams["year"], "/", queryParams["month"], "/", queryParams["day"], "/", s3FileName, ".csv")
 	postURL := fmt.Sprint(appHost, "/api/save-athena-data")
 
 	formData := url.Values{
