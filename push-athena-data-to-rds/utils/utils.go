@@ -28,5 +28,5 @@ func GenerateS3Location(bucketName, s3FilePath string) string {
 }
 
 func CompleteS3Location(s3Location, dataSource string, dateObject map[string]string) string {
-	return fmt.Sprint(s3Location, "/assettype", "/", dateObject["year"], "/", dateObject["month"], "/", dateObject["day"])
+	return fmt.Sprint(s3Location, "/", dataSource, "/", dateObject["year"], "/", dateObject["month"], "/", dateObject["day"])
 }
