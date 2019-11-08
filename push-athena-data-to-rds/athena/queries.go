@@ -198,3 +198,31 @@ func FrontendHaproxyDataQuery(queryParams map[string]string, db string, table st
 
 	return generateStringQuery(query)
 }
+
+func GumletDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
+	stringDate := getDateString(queryParams)
+	fromQuery := fmt.Sprint(db, ".", table)
+
+	dateQuery := fmt.Sprint("'", stringDate, "' AS date")
+
+	reqCountExp := sq.Expr("count(*)")
+	hitSumExp := sq.Expr("sum(case WHEN cachestatus = 'Hit' THEN 1 ELSE 0 end)")
+	responseByteSumExp := sq.Expr("sum(responsebytes)")
+
+	whereClause := sq.And{sq.Eq{"statuscode": fmt.Sprint("'", "200", "'")},
+		sq.Eq{"year": queryParams["year"]},
+		sq.Eq{"month": queryParams["month"]},
+		sq.Eq{"day": queryParams["day"]}}
+
+	query := sq.Select().
+		Column("split_part(split_part(clientrequesturi, '/', 2), '%', 1) AS publisher_name").
+		Column(sq.Alias(reqCountExp, "total_requests")).
+		Column(sq.Alias(responseByteSumExp, "total_bytes")).
+		Column(sq.Alias(hitSumExp, "hit_count")).
+		Column(dateQuery).
+		From(fromQuery).
+		Where(whereClause).
+		GroupBy("split_part(split_part(clientrequesturi, '/', 2), '%', 1)")
+
+	return generateStringQuery(query)
+}

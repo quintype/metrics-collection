@@ -23,10 +23,6 @@ func ValidateDate(date string) bool {
 	return dateRegex.MatchString(date)
 }
 
-func GenerateS3Location(bucketName, s3FilePath string) string {
-	return fmt.Sprint("s3://", bucketName, "/", s3FilePath)
-}
-
-func CompleteS3Location(s3Location, dataSource string, dateObject map[string]string) string {
-	return fmt.Sprint(s3Location, "/", dataSource, "/", dateObject["year"], "/", dateObject["month"], "/", dateObject["day"])
+func GenerateS3Location(bucketName, s3FilePath string, dataSource string, dateObject map[string]string) string {
+	return fmt.Sprint("s3://", bucketName, "/", s3FilePath, "/", dataSource, "/", dateObject["year"], "/", dateObject["month"], "/", dateObject["day"])
 }
