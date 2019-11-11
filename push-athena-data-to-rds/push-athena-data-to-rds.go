@@ -159,7 +159,7 @@ func runProcesses() {
 	if isAllVariablesPresent {
 		queryParams := getQueryParams()
 
-		dataSources := []string{"assettype", "host", "varnish", "frontend_haproxy"}
+		dataSources := []string{"assettype", "host", "varnish", "frontend_haproxy", "gumlet"}
 
 		for index := 0; index < len(dataSources); index++ {
 			dataSource := dataSources[index]
