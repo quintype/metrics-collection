@@ -15,73 +15,67 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-func getQuery(dataSource string, queryParams map[string]string, athenaDBName string, athenaTableName string) (string, types.ErrorMessage) {
+func getSourceDetails(dataSource string, queryParams map[string]string) (string, string, types.ErrorMessage) {
 	switch dataSource {
 	case "assettype":
-		return athena.AssetypeDataQuery(queryParams, athenaDBName, athenaTableName)
+		{
+			athenaDBName := os.Getenv("CLOUDFLARE_DB")
+			athenaTableName := os.Getenv("ASSETTYPE_TABLE")
+			query, queryErrMsg := athena.AssetypeDataQuery(queryParams, athenaDBName, athenaTableName)
+			return athenaDBName, query, queryErrMsg
+		}
 	case "host":
-		return athena.PrimaryDomainDataQuery(queryParams, athenaDBName, athenaTableName)
+		{
+			athenaDBName := os.Getenv("CLOUDFLARE_DB")
+			athenaTableName := os.Getenv("PRIMARY_DOMAIN_TABLE")
+			query, queryErrMsg := athena.PrimaryDomainDataQuery(queryParams, athenaDBName, athenaTableName)
+			return athenaDBName, query, queryErrMsg
+		}
 	case "varnish":
-		return athena.VarnishDataQuery(queryParams, athenaDBName, athenaTableName)
+		{
+			athenaDBName := os.Getenv("ALB_DB")
+			athenaTableName := os.Getenv("VARNISH_TABLE")
+			query, queryErrMsg := athena.VarnishDataQuery(queryParams, athenaDBName, athenaTableName)
+			return athenaDBName, query, queryErrMsg
+		}
 	case "frontend_haproxy":
-		return athena.FrontendHaproxyDataQuery(queryParams, athenaDBName, athenaTableName)
+		{
+			athenaDBName := os.Getenv("ALB_DB")
+			athenaTableName := os.Getenv("HAPROXY_TABLE")
+			query, queryErrMsg := athena.FrontendHaproxyDataQuery(queryParams, athenaDBName, athenaTableName)
+			return athenaDBName, query, queryErrMsg
+		}
 	case "gumlet":
-		return athena.GumletDataQuery(queryParams, athenaDBName, athenaTableName)
+		{
+			athenaDBName := os.Getenv("GUMLET_DB")
+			athenaTableName := os.Getenv("GUMLET_TABLE")
+			query, queryErrMsg := athena.GumletDataQuery(queryParams, athenaDBName, athenaTableName)
+			return athenaDBName, query, queryErrMsg
+		}
 	default:
-		return "", types.ErrorMessage{
-			Message: "Wrong DataSource",
-			Err:     nil,
+		{
+			query, queryErrMsg := "", types.ErrorMessage{
+				Message: "Wrong DataSource",
+				Err:     nil,
+			}
+			return "Wrong DataSource", query, queryErrMsg
 		}
 	}
 }
 
-func getDBName(dataSource string) string {
-	switch dataSource {
-	case "assettype":
-		return os.Getenv("CLOUDFLARE_DB")
-	case "host":
-		return os.Getenv("CLOUDFLARE_DB")
-	case "varnish":
-		return os.Getenv("ALB_DB")
-	case "frontend_haproxy":
-		return os.Getenv("ALB_DB")
-	case "gumlet":
-		return os.Getenv("GUMLET_DB")
-	default:
-		return "Wrong DataSource"
-	}
-}
-
-func getTableName(dataSource string) string {
-	switch dataSource {
-	case "assettype":
-		return os.Getenv("ASSETTYPE_TABLE")
-	case "host":
-		return os.Getenv("PRIMARY_DOMAIN_TABLE")
-	case "varnish":
-		return os.Getenv("VARNISH_TABLE")
-	case "frontend_haproxy":
-		return os.Getenv("HAPROXY_TABLE")
-	case "gumlet":
-		return os.Getenv("GUMLET_TABLE")
-	default:
-		return "Wrong DataSource"
-	}
-}
-
 func getDataFromAthena(dataSource string, s3Location string, queryParams map[string]string) {
-	athenaDBName := getDBName(dataSource)
-	athenaTableName := getTableName(dataSource)
-	query, queryErrMsg := getQuery(dataSource, queryParams, athenaDBName, athenaTableName)
+	athenaDBName, query, queryErrMsg := getSourceDetails(dataSource, queryParams)
 
-	if queryErrMsg.Err != nil {
-		fmt.Println(queryErrMsg.Message, queryErrMsg.Err)
+	if len(query) == 0 {
+		fmt.Println(queryErrMsg.Message, dataSource)
+		return
 	}
 
 	s3FileName, athenaErrMsg := athena.SaveDataToS3(query, athenaDBName, s3Location)
 
 	if athenaErrMsg.Err != nil {
 		fmt.Println(athenaErrMsg.Message, athenaErrMsg.Err)
+		return
 	}
 
 	api.SaveAthenaData(s3FileName, queryParams, dataSource)
@@ -132,31 +126,26 @@ func getQueryParams() map[string]string {
 	return queryParams
 }
 
-func checkVariablesPresence() bool {
-	_, isBucketNamePresent := os.LookupEnv("BUCKET_NAME")
-	_, isS3PathPresent := os.LookupEnv("S3_FILE_PATH")
-	_, isBadgerHost := os.LookupEnv("APP_HOST")
-	_, isBadgerAuth := os.LookupEnv("APP_AUTH")
-	_, isCloudflareDB := os.LookupEnv("CLOUDFLARE_DB")
-	_, isAlbDB := os.LookupEnv("ALB_DB")
-	_, isAssettypeTable := os.LookupEnv("ASSETTYPE_TABLE")
-	_, isPrimaryDomainTable := os.LookupEnv("PRIMARY_DOMAIN_TABLE")
-	_, isVarnishTable := os.LookupEnv("VARNISH_TABLE")
-	_, isHaproxyTable := os.LookupEnv("HAPROXY_TABLE")
-	_, isGumletDB := os.LookupEnv("GUMLET_DB")
-	_, isGumletTable := os.LookupEnv("GUMLET_TABLE")
+func getMissingVariables() []string {
+	envVariables := []string{"BUCKET_NAME", "S3_FILE_PATH", "APP_HOST", "APP_AUTH", "CLOUDFLARE_DB", "ALB_DB", "ASSETTYPE_TABLE", "PRIMARY_DOMAIN_TABLE", "VARNISH_TABLE", "HAPROXY_TABLE", "GUMLET_DB", "GUMLET_TABLE"}
 
-	if isS3PathPresent && isBucketNamePresent && isBadgerHost && isBadgerAuth && isCloudflareDB && isAlbDB && isVarnishTable && isAssettypeTable && isPrimaryDomainTable && isHaproxyTable && isGumletDB && isGumletTable {
-		return true
+	var missingVariables []string
+
+	for i := 0; i < len(envVariables); i++ {
+		envValue, _ := os.LookupEnv(envVariables[i])
+
+		if len(envValue) <= 0 {
+			missingVariables = append(missingVariables, envVariables[i])
+		}
 	}
-	return false
 
+	return missingVariables
 }
 
 func runProcesses() {
-	isAllVariablesPresent := checkVariablesPresence()
+	missingVariables := getMissingVariables()
 
-	if isAllVariablesPresent {
+	if len(missingVariables) <= 0 {
 		queryParams := getQueryParams()
 
 		dataSources := []string{"assettype", "host", "varnish", "frontend_haproxy", "gumlet"}
@@ -169,7 +158,7 @@ func runProcesses() {
 			getDataFromAthena(dataSource, s3Location, queryParams)
 		}
 	} else {
-		fmt.Println("Enter correct BUCKET_NAME, S3_FILE_PATH, APP_HOST, APP_AUTH, CLOUDFLARE_DB, VARNISH_DB, ASSETTYPE_TABLE, PRIMARY_DOMAIN_TABLE, VARNISH_TABLE, HAPROXY_TABLE, GUMLET_DB, GUMLET_TABLE ")
+		fmt.Println("Enter value for missing variables", missingVariables)
 	}
 }
 
