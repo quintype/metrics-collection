@@ -27,7 +27,7 @@ func startAthenaQuery(athenaClient *athena.Athena, athenaQuery string, athenaDBN
 	return athenaClient.StartQueryExecution(&query)
 }
 
-func runAthenaQuery(athenaClient *athena.Athena, queryInput athena.GetQueryExecutionInput) types.ErrorMessage {
+func runAthenaQuery(athenaClient *athena.Athena, queryInput athena.GetQueryExecutionInput) (string, types.ErrorMessage) {
 	duration := time.Duration(2) * time.Second
 	var exectionMessage types.ErrorMessage
 
@@ -35,9 +35,9 @@ func runAthenaQuery(athenaClient *athena.Athena, queryInput athena.GetQueryExecu
 		queryOutput, executionErr := athenaClient.GetQueryExecution(&queryInput)
 		if executionErr != nil {
 			exectionMessage = types.ErrorMessage{Message: "Error Executing Athena Query", Err: executionErr}
-			return exectionMessage
+			return "ERRORED", exectionMessage
 		}
-		if *queryOutput.QueryExecution.Status.State != "RUNNING" {
+		if *queryOutput.QueryExecution.Status.State != "RUNNING" && *queryOutput.QueryExecution.Status.State != "QUEUED" {
 			break
 		}
 		fmt.Println("Running query")
@@ -46,9 +46,11 @@ func runAthenaQuery(athenaClient *athena.Athena, queryInput athena.GetQueryExecu
 
 	queryOutput, executionErr := athenaClient.GetQueryExecution(&queryInput)
 
+	queryStatus := *queryOutput.QueryExecution.Status.State
+
 	fmt.Println(queryOutput)
 
-	if *queryOutput.QueryExecution.Status.State == "SUCCEEDED" {
+	if queryStatus == "SUCCEEDED" {
 		var resultInput athena.GetQueryResultsInput
 		resultInput.SetQueryExecutionId(*queryInput.QueryExecutionId)
 
@@ -56,18 +58,18 @@ func runAthenaQuery(athenaClient *athena.Athena, queryInput athena.GetQueryExecu
 
 		if err != nil {
 			exectionMessage = types.ErrorMessage{Message: "Error fetching the query results", Err: err}
-			return exectionMessage
+			return "ERRORED", exectionMessage
 		}
 
 		exectionMessage = types.ErrorMessage{Message: "Successfully executed the query.", Err: nil}
 
-		return exectionMessage
+		return queryStatus, exectionMessage
 	}
 	exectionMessage = types.ErrorMessage{Message: "Error Executing Athena Query", Err: executionErr}
-	return exectionMessage
+	return queryStatus, exectionMessage
 }
 
-func SaveDataToS3(athenaQuery string, athenaDBName string, S3Location string) (string, types.ErrorMessage) {
+func SaveDataToS3(athenaQuery string, athenaDBName string, S3Location string) (string, string, types.ErrorMessage) {
 	var errorMessage types.ErrorMessage
 
 	awsConfig := &aws.Config{}
@@ -83,11 +85,11 @@ func SaveDataToS3(athenaQuery string, athenaDBName string, S3Location string) (s
 	var queryInput athena.GetQueryExecutionInput
 	queryInput.SetQueryExecutionId(*startExecutionResult.QueryExecutionId)
 
-	exectionResult := runAthenaQuery(newAthenaClient, queryInput)
+	queryStatus, exectionResult := runAthenaQuery(newAthenaClient, queryInput)
 
 	if exectionResult.Err != nil {
-		return "", exectionResult
+		return "", "", exectionResult
 	}
 
-	return *startExecutionResult.QueryExecutionId, errorMessage
+	return *startExecutionResult.QueryExecutionId, queryStatus, errorMessage
 }

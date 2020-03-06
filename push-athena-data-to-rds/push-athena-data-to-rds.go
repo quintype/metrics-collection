@@ -71,14 +71,19 @@ func getDataFromAthena(dataSource string, s3Location string, queryParams map[str
 		return
 	}
 
-	s3FileName, athenaErrMsg := athena.SaveDataToS3(query, athenaDBName, s3Location)
+	s3FileName, queryStatus, athenaErrMsg := athena.SaveDataToS3(query, athenaDBName, s3Location)
 
 	if athenaErrMsg.Err != nil {
 		fmt.Println(athenaErrMsg.Message, athenaErrMsg.Err)
 		return
 	}
 
-	api.SaveAthenaData(s3FileName, queryParams, dataSource)
+	if queryStatus == "SUCCEEDED" {
+		api.SaveAthenaData(s3FileName, queryParams, dataSource)
+		return
+	}
+
+	fmt.Println("Athena query execution was", queryStatus)
 }
 
 func getQueryParams() map[string]string {
