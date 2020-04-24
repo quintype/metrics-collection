@@ -167,7 +167,7 @@ func VarnishDataQuery(queryParams map[string]string, db string, table string) (s
 }
 
 func FrontendHaproxyDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
-	// query := SELECT replace(domain_name, '"', '') AS domain_url, count(domain_name) as total_requests FROM "alb"."prod_haproxy_web" where elb_status_code = '200' and request_url not like '%?uptime%' and request_url not like '%robots.txt%' and request_url not like '%ping%' and month = '10' and year = '2019' and day = '01' group by domain_name;
+	// query := SELECT replace(SPLIT_PART(request_url, '/', 3), ':443', '') AS domain_url, count(domain_name) AS total_requests FROM "alb"."prod_haproxy" WHERE elb_status_code = '200' AND request_url NOT LIKE '%?uptime%' AND request_url NOT LIKE '%robots.txt%' AND request_url NOT LIKE '%ping%' AND month = '03' AND year = '2020' AND day = '03' GROUP BY  replace(SPLIT_PART(request_url, '/', 3), ':443', '');;
 
 	stringDate := getDateString(queryParams)
 	fromQuery := fmt.Sprint(db, ".", table)
@@ -189,12 +189,12 @@ func FrontendHaproxyDataQuery(queryParams map[string]string, db string, table st
 		sq.Eq{"day": dayString}}
 
 	query := sq.Select().
-		Column("replace(domain_name, '\"', '') AS domain_url").
+		Column("replace(split_part(request_url, '/', 3), ':443', '') AS domain_url").
 		Column(sq.Alias(reqCountExp, "total_requests")).
 		Column(dateQuery).
 		From(fromQuery).
 		Where(whereClause).
-		GroupBy("domain_name")
+		GroupBy("replace(split_part(request_url, '/', 3), ':443', '')")
 
 	return generateStringQuery(query)
 }
