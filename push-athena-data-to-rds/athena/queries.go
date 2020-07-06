@@ -139,29 +139,69 @@ func PrimaryDomainDataQuery(queryParams map[string]string, db string, table stri
 }
 
 func VarnishDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
-	// query := "SELECT split_part(request_url,'/', 3) AS publisher_name, count(*) AS total_uncached_requests, '2018-12-17' AS date FROM alb.prod_qtproxy_varnish_internal WHERE year = '2018' AND month = '12' AND day = '17' and request_url IS NOT NULL GROUP BY split_part(request_url, '/', 3);"
+	// query := "WITH all_request(url, count, date) AS (SELECT split_part(request_url, '/', 3) AS publisher_name, count(*) AS total_uncached_requests, '2020-01-17' AS date FROM alb.prod_quintype_varnish  WHERE year = '2020' AND month = '01' AND day = '17' AND request_url IS NOT NULL GROUP BY split_part(request_url, '/', 3)), bulk_request(url, count, date) AS (SELECT split_part(request_url, '/', 3) AS publisher_name, count(*) AS total_uncached_requests, '2020-01-17' AS date FROM alb.prod_quintype_varnish  WHERE request_url LIKE '%/bulk%' AND year = '2020' AND month = '01' AND day = '17' AND request_url IS NOT NULL  GROUP BY  split_part(request_url, '/', 3)) SELECT a.url, a.count, b.count, a.date FROM all_request AS a FULL JOIN bulk_request AS b ON a.url = b.url; "
 
 	stringDate := getDateString(queryParams)
 	fromQuery := fmt.Sprint(db, ".", table)
 
-	dateQuery := fmt.Sprint("'", stringDate, "' as date")
+	dateQuery := fmt.Sprint("'", stringDate, "'")
 
 	yearString := fmt.Sprint("'", queryParams["year"], "'")
 	monthString := fmt.Sprint("'", queryParams["month"], "'")
 	dayString := fmt.Sprint("'", queryParams["day"], "'")
+	bulkString := fmt.Sprint("'", "%bulk%", "'")
 
-	whereClause := sq.And{sq.Eq{"year": yearString},
+	bulkRequestsWhereClause := sq.And{sq.Like{"request_url": bulkString},
+		sq.Eq{"year": yearString},
 		sq.Eq{"month": monthString},
 		sq.Eq{"day": dayString},
 		sq.NotEq{"request_url": nil}}
 
-	query := sq.Select().
+	allRequestsWhereClause := sq.And{sq.Eq{"year": yearString},
+		sq.Eq{"month": monthString},
+		sq.Eq{"day": dayString},
+		sq.NotEq{"request_url": nil}}
+
+	allRequestSubQuery := sq.Select().
+		Prefix("WITH all_request(publisher_name, total_uncached_requests, date) AS (").
+		Column("split_part(request_url,'/', 3)").
+		Column("count(*)").
+		Column(dateQuery).
+		From(fromQuery).
+		Where(allRequestsWhereClause).
+		GroupBy("split_part(request_url, '/', 3)").Suffix("),")
+
+	bulkRequestQuery := sq.Select().
+		Prefix("bulk_request(publisher_name, bulk_uncached_requests, date) AS (").
 		Column("split_part(request_url,'/', 3) AS publisher_name").
 		Column("count(*) as total_uncached_requests").
 		Column(dateQuery).
 		From(fromQuery).
-		Where(whereClause).
-		GroupBy("split_part(request_url, '/', 3)")
+		Where(bulkRequestsWhereClause).
+		GroupBy("split_part(request_url, '/', 3)").Suffix(")")
+
+	allRequestStringQuery, allRequestErrMsg := generateStringQuery(allRequestSubQuery)
+	reqErr := allRequestErrMsg.Err
+
+	if reqErr != nil {
+		return "", allRequestErrMsg
+	}
+	bulkRequestStringQuery, bulkRequestErrMsg := generateStringQuery(bulkRequestQuery)
+	pubDataErr := bulkRequestErrMsg.Err
+
+	if pubDataErr != nil {
+		return "", bulkRequestErrMsg
+	}
+
+	query := sq.Select().
+		Prefix(allRequestStringQuery).
+		Prefix(bulkRequestStringQuery).
+		Column("all.publisher_name AS publisher_name").
+		Column("all.total_uncached_requests as total_uncached_requests").
+		Column("bulk.bulk_uncached_requests as bulk_uncached_requests").
+		Column("all.date as date").
+		From("all_request as all").
+		Join("bulk_request as bulk on all.publisher_name = bulk.publisher_name")
 
 	return generateStringQuery(query)
 }
