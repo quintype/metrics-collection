@@ -154,8 +154,7 @@ func VarnishDataQuery(queryParams map[string]string, db string, table string) (s
 	bulkRequestsWhereClause := sq.And{sq.Like{"request_url": bulkString},
 		sq.Eq{"year": yearString},
 		sq.Eq{"month": monthString},
-		sq.Eq{"day": dayString},
-		sq.NotEq{"request_url": nil}}
+		sq.Eq{"day": dayString}}
 
 	allRequestsWhereClause := sq.And{sq.Eq{"year": yearString},
 		sq.Eq{"month": monthString},
