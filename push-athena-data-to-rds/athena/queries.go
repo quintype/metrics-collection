@@ -121,6 +121,7 @@ func PrimaryDomainDataQuery(queryParams map[string]string, db string, table stri
 	dateQuery := fmt.Sprint("'", stringDate, "' as date")
 
 	whereClause := sq.And{sq.NotLike{"clientrequesturi": fmt.Sprint("'", "%/?uptime%", "'")},
+		sq.NotEq{"edgepathingop": "ban"}
 		sq.Eq{"workersubrequest": "false"},
 		sq.Eq{"year": queryParams["year"]},
 		sq.Eq{"month": queryParams["month"]},
