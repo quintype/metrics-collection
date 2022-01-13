@@ -13,7 +13,7 @@ jobs:
 
   push-athena-data-to-rds:
     docker:
-      - image: circleci/golang:1.11
+      - image: circleci/golang:1.17
 
     steps:
       - checkout
