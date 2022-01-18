@@ -109,7 +109,7 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 }
 
 func PrimaryDomainDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
-	// query := "select clientrequesthost AS publisher_name, count(clientrequesthost) as total_requests, sum(edgeresponsebytes) as total_bytes, sum(case when cachecachestatus = 'hit' then 1 else 0 end) as hit_count, '2018-12-17' AS date FROM qt_cloudflare_logs.quintype_io WHERE clientrequesturi NOT LIKE '%/?uptime%' AND workersubrequest = false AND month = 12 AND year = 2018 AND day = 17 GROUP BY  clientrequesthost;"
+	// query := "SELECT clientrequesthost AS publisher_host, (count(clientrequesthost)) AS total_requests, (sum(edgeresponsebytes)) AS total_bytes, (sum(case when cachecachestatus = 'hit' then 1 else 0 end)) AS hit_count, '2022-01-17' as date FROM qt_cloudflare_logs.quintype_io WHERE (clientrequesturi NOT LIKE '%/?uptime%' AND edgepathingop <> 'ban' AND workersubrequest = false AND year = 2022 AND month = 01 AND day = 17) GROUP BY clientrequesthost;"
 
 	stringDate := getDateString(queryParams)
 	fromQuery := fmt.Sprint(db, ".", table)
@@ -121,7 +121,7 @@ func PrimaryDomainDataQuery(queryParams map[string]string, db string, table stri
 	dateQuery := fmt.Sprint("'", stringDate, "' as date")
 
 	whereClause := sq.And{sq.NotLike{"clientrequesturi": fmt.Sprint("'", "%/?uptime%", "'")},
-		sq.NotEq{"edgepathingop": "ban"},
+		sq.NotEq{"edgepathingop": fmt.Sprint("'", "ban", "'")},
 		sq.Eq{"workersubrequest": "false"},
 		sq.Eq{"year": queryParams["year"]},
 		sq.Eq{"month": queryParams["month"]},
