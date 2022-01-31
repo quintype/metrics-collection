@@ -108,6 +108,37 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 	return generateStringQuery(query)
 }
 
+func FastlyHostDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
+	// query :=
+	
+	stringDate := getDateString(queryParams)
+	fromQuery := fmt.Sprint(db, ".", table)
+
+	reqCountExp := sq.Expr("count(host)")
+	resByteSumExp := sq.Expr("sum(output_bytes)")
+	hitSumExp := sq.Expr("sum(case when (cache_status = 'HIT' OR cache_status = 'HIT-CLUSTER') then 1 else 0 end)")
+
+	dateQuery := fmt.Sprint("'", stringDate, "' as date")
+
+	whereClause := sq.And{sq.NotLike{"clientrequesturi": fmt.Sprint("'", "%/?uptime%", "'")},
+		// sq.Eq{"workersubrequest": "false"},  what is "workersubrequest" for? is it needed for fastly?
+		sq.Eq{"year": queryParams["year"]},
+		sq.Eq{"month": queryParams["month"]},
+		sq.Eq{"day": queryParams["day"]}}
+
+	query := sq.Select().
+		Column("host AS publisher_host").
+		Column(sq.Alias(reqCountExp, "total_requests")).
+		Column(sq.Alias(resByteSumExp, "total_bytes")).
+		Column(sq.Alias(hitSumExp, "hit_count")).
+		Column(dateQuery).
+		From(fromQuery).Where(whereClause).
+		GroupBy("host")
+
+	return generateStringQuery(query)
+
+}
+
 func PrimaryDomainDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
 	// query := "SELECT clientrequesthost AS publisher_host, (count(clientrequesthost)) AS total_requests, (sum(edgeresponsebytes)) AS total_bytes, (sum(case when cachecachestatus = 'hit' then 1 else 0 end)) AS hit_count, '2022-01-17' as date FROM qt_cloudflare_logs.quintype_io WHERE (clientrequesturi NOT LIKE '%/?uptime%' AND edgepathingop <> 'ban' AND workersubrequest = false AND year = 2022 AND month = 01 AND day = 17) GROUP BY clientrequesthost;"
 

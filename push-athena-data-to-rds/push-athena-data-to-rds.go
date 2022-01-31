@@ -31,6 +31,13 @@ func getSourceDetails(dataSource string, queryParams map[string]string) (string,
 			query, queryErrMsg := athena.PrimaryDomainDataQuery(queryParams, athenaDBName, athenaTableName)
 			return athenaDBName, query, queryErrMsg
 		}
+	case "host_fastly":
+		{
+			athenaDBName := os.Getenv("FASTLY_DB")
+			athenaTableName := os.Getenv("FASTLY_TABLE")
+			query, queryErrMsg := athena.FastlyHostDataQuery(queryParams, athenaDBName, athenaTableName)
+			return athenaDBName, query, queryErrMsg
+		}
 	case "varnish":
 		{
 			athenaDBName := os.Getenv("ALB_DB")
@@ -132,7 +139,7 @@ func getQueryParams() map[string]string {
 }
 
 func getMissingVariables() []string {
-	envVariables := []string{"BUCKET_NAME", "S3_FILE_PATH", "APP_HOST", "APP_AUTH", "CLOUDFLARE_DB", "ALB_DB", "ASSETTYPE_TABLE", "PRIMARY_DOMAIN_TABLE", "VARNISH_TABLE", "HAPROXY_TABLE", "GUMLET_DB", "GUMLET_TABLE"}
+	envVariables := []string{"BUCKET_NAME", "S3_FILE_PATH", "APP_HOST", "APP_AUTH", "CLOUDFLARE_DB", "ALB_DB", "ASSETTYPE_TABLE", "PRIMARY_DOMAIN_TABLE", "VARNISH_TABLE", "HAPROXY_TABLE", "GUMLET_DB", "GUMLET_TABLE", "FASTLY_DB", "FASTLY_TABLE"}
 
 	var missingVariables []string
 
@@ -153,7 +160,7 @@ func runProcesses() {
 	if len(missingVariables) <= 0 {
 		queryParams := getQueryParams()
 
-		dataSources := []string{"assettype", "host", "varnish", "frontend_haproxy", "gumlet"}
+		dataSources := []string{"assettype", "host", "host_fastly", "varnish", "frontend_haproxy", "gumlet"}
 
 		for index := 0; index < len(dataSources); index++ {
 			dataSource := dataSources[index]
