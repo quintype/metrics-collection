@@ -109,7 +109,7 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 }
 
 func FastlyHostDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
-	// query :=
+	// query := -- will update this later with the actual query that ran in prod
 	
 	stringDate := getDateString(queryParams)
 	fromQuery := fmt.Sprint(db, ".", table)
@@ -121,7 +121,6 @@ func FastlyHostDataQuery(queryParams map[string]string, db string, table string)
 	dateQuery := fmt.Sprint("'", stringDate, "' as date")
 
 	whereClause := sq.And{sq.NotLike{"clientrequesturi": fmt.Sprint("'", "%/?uptime%", "'")},
-		// sq.Eq{"workersubrequest": "false"},  what is "workersubrequest" for? is it needed for fastly?
 		sq.Eq{"year": queryParams["year"]},
 		sq.Eq{"month": queryParams["month"]},
 		sq.Eq{"day": queryParams["day"]}}
