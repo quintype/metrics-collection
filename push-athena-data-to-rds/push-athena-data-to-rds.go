@@ -34,7 +34,7 @@ func getSourceDetails(dataSource string, queryParams map[string]string) (string,
 	case "fastly_host":
 		{
 			athenaDBName := os.Getenv("FASTLY_DB")
-			athenaTableName := os.Getenv("FASTLY_TABLE")
+			athenaTableName := os.Getenv("FASTLY_PRIMARY_DOMAIN_TABLE")
 			query, queryErrMsg := athena.FastlyHostDataQuery(queryParams, athenaDBName, athenaTableName)
 			return athenaDBName, query, queryErrMsg
 		}
@@ -139,7 +139,7 @@ func getQueryParams() map[string]string {
 }
 
 func getMissingVariables() []string {
-	envVariables := []string{"BUCKET_NAME", "S3_FILE_PATH", "APP_HOST", "APP_AUTH", "CLOUDFLARE_DB", "ALB_DB", "ASSETTYPE_TABLE", "PRIMARY_DOMAIN_TABLE", "VARNISH_TABLE", "HAPROXY_TABLE", "GUMLET_DB", "GUMLET_TABLE", "FASTLY_DB", "FASTLY_TABLE"}
+	envVariables := []string{"BUCKET_NAME", "S3_FILE_PATH", "APP_HOST", "APP_AUTH", "CLOUDFLARE_DB", "ALB_DB", "ASSETTYPE_TABLE", "PRIMARY_DOMAIN_TABLE", "VARNISH_TABLE", "HAPROXY_TABLE", "GUMLET_DB", "GUMLET_TABLE", "FASTLY_DB", "FASTLY_PRIMARY_DOMAIN_TABLE"}
 
 	var missingVariables []string
 
