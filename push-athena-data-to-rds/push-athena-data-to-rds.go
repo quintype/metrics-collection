@@ -31,7 +31,7 @@ func getSourceDetails(dataSource string, queryParams map[string]string) (string,
 			query, queryErrMsg := athena.PrimaryDomainDataQuery(queryParams, athenaDBName, athenaTableName)
 			return athenaDBName, query, queryErrMsg
 		}
-	case "host_fastly":
+	case "fastly_host":
 		{
 			athenaDBName := os.Getenv("FASTLY_DB")
 			athenaTableName := os.Getenv("FASTLY_TABLE")
