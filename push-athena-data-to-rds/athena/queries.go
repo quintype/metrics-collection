@@ -109,7 +109,7 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 }
 
 func FastlyHostDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
-	// query := -- will update this later with the actual query that ran in prod
+	// query := -- SELECT host AS publisher_host, (count(host)) AS total_requests, (sum(output_bytes)) AS total_bytes, (sum(case when (cache_status = 'HIT' OR cache_status = 'HIT-CLUSTER') then 1 else 0 end)) AS hit_count, '2022-02-03' as date FROM qt_fastly_logs.fastly_web_logs WHERE (path NOT LIKE '%/?uptime%' AND year = 2022 AND month = 02 AND day = 03) GROUP BY host
 	
 	stringDate := getDateString(queryParams)
 	fromQuery := fmt.Sprint(db, ".", table)
@@ -120,7 +120,7 @@ func FastlyHostDataQuery(queryParams map[string]string, db string, table string)
 
 	dateQuery := fmt.Sprint("'", stringDate, "' as date")
 
-	whereClause := sq.And{sq.NotLike{"clientrequesturi": fmt.Sprint("'", "%/?uptime%", "'")},
+	whereClause := sq.And{sq.NotLike{"path": fmt.Sprint("'", "%/?uptime%", "'")},
 		sq.Eq{"year": queryParams["year"]},
 		sq.Eq{"month": queryParams["month"]},
 		sq.Eq{"day": queryParams["day"]}}
