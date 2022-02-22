@@ -110,7 +110,7 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 
 func FastlyHostDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
 	// query := -- SELECT host AS publisher_host, (count(host)) AS total_requests, (sum(output_bytes)) AS total_bytes, (sum(case when (cache_status = 'HIT' OR cache_status = 'HIT-CLUSTER') then 1 else 0 end)) AS hit_count, '2022-02-03' as date FROM qt_fastly_logs.fastly_web_logs WHERE (path NOT LIKE '%/?uptime%' AND year = 2022 AND month = 02 AND day = 03) GROUP BY host
-	
+
 	stringDate := getDateString(queryParams)
 	fromQuery := fmt.Sprint(db, ".", table)
 
@@ -237,7 +237,7 @@ func VarnishDataQuery(queryParams map[string]string, db string, table string) (s
 }
 
 func FrontendHaproxyDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
-	// query := SELECT replace(SPLIT_PART(request_url, '/', 3), ':443', '') AS domain_url, count(domain_name) AS total_requests FROM "alb"."prod_haproxy" WHERE elb_status_code = '200' AND request_url NOT LIKE '%?uptime%' AND request_url NOT LIKE '%robots.txt%' AND request_url NOT LIKE '%ping%' AND month = '03' AND year = '2020' AND day = '03' GROUP BY  replace(SPLIT_PART(request_url, '/', 3), ':443', '');;
+	// query := SELECT replace(SPLIT_PART(request_url, '/', 3), ':443', '') AS domain_url, count(domain_name) AS total_requests FROM "alb"."prod_haproxy" WHERE elb_status_code = '200' AND request_url NOT LIKE '%?uptime%' AND request_url NOT LIKE '%robots.txt%' AND request_url NOT LIKE '%ping%' AND month = '03' AND year = '2020' AND day = '03' GROUP BY replace(SPLIT_PART(request_url, '/', 3), ':443', '');
 
 	stringDate := getDateString(queryParams)
 	fromQuery := fmt.Sprint(db, ".", table)
@@ -270,6 +270,7 @@ func FrontendHaproxyDataQuery(queryParams map[string]string, db string, table st
 }
 
 func GumletDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
+	// query := SELECT split_part(split_part(clientrequesturi, '/', 2), '%', 1) AS publisher_name, (count(*)) AS total_requests, (sum(responsebytes)) AS total_bytes, (sum(case WHEN cachestatus = 'Hit' THEN 1 ELSE 0 end)) AS hit_count, '2022-02-21' AS date FROM qt_gumlet_logs.gumlet_log WHERE (statuscode <> '0' AND statuscode <> '000' AND year = 2022 AND month = 02 AND day = 21) GROUP BY split_part(split_part(clientrequesturi, '/', 2), '%', 1)
 	stringDate := getDateString(queryParams)
 	fromQuery := fmt.Sprint(db, ".", table)
 
@@ -279,7 +280,8 @@ func GumletDataQuery(queryParams map[string]string, db string, table string) (st
 	hitSumExp := sq.Expr("sum(case WHEN cachestatus = 'Hit' THEN 1 ELSE 0 end)")
 	responseByteSumExp := sq.Expr("sum(responsebytes)")
 
-	whereClause := sq.And{sq.Eq{"statuscode": fmt.Sprint("'", "200", "'")},
+	whereClause := sq.And{sq.NotEq{"statuscode": fmt.Sprint("'", "0", "'")}, 
+		sq.NotEq{"statuscode": fmt.Sprint("'", "000", "'")},
 		sq.Eq{"year": queryParams["year"]},
 		sq.Eq{"month": queryParams["month"]},
 		sq.Eq{"day": queryParams["day"]}}
