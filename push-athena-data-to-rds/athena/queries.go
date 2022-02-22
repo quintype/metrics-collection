@@ -237,7 +237,7 @@ func VarnishDataQuery(queryParams map[string]string, db string, table string) (s
 }
 
 func FrontendHaproxyDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
-	// query := SELECT replace(SPLIT_PART(request_url, '/', 3), ':443', '') AS domain_url, count(domain_name) AS total_requests FROM "alb"."prod_haproxy" WHERE elb_status_code = '200' AND request_url NOT LIKE '%?uptime%' AND request_url NOT LIKE '%robots.txt%' AND request_url NOT LIKE '%ping%' AND month = '03' AND year = '2020' AND day = '03' GROUP BY  replace(SPLIT_PART(request_url, '/', 3), ':443', '');;
+	// query := will paste actual query here once it runs
 
 	stringDate := getDateString(queryParams)
 	fromQuery := fmt.Sprint(db, ".", table)
