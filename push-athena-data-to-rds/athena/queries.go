@@ -83,7 +83,7 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 		Suffix("),")
 	
 	refererSubQuery := sq.Select().
-		Prefix("referer_name(name, cache_status, response_byte, referer) AS (").
+		Prefix("populate_referer(name, cache_status, response_byte, referer) AS (").
 		Columns("name", "cache_status", "response_byte").
 		Column(refererCaseQuery).
 		From("publisher_data").
@@ -124,7 +124,7 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 		Column(sq.Alias(hitSumExp, "hit_count")).
 		Column("referer").
 		Column(dateQuery).
-		From("referer_name").
+		From("populate_referer").
 		GroupBy("name", "referer")
 
 	return generateStringQuery(query)
