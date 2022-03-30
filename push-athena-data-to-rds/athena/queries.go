@@ -41,7 +41,7 @@ func generateStringQuery(query sq.SelectBuilder) (string, types.ErrorMessage) {
 }
 
 func AssetypeDataQuery(queryParams map[string]string, db string, table string) (string, types.ErrorMessage) {
-	// query := "WITH request(url, cache_status, response_byte) AS (SELECT CASE WHEN split_part(clientrequesturi, '/', 2 ) = 'pdf' THEN split_part (clientrequesturi, '/', 3 ) ELSE split_part(clientrequesturi, '/', 2 ) END, cachecachestatus, edgeresponsebytes FROM qt_cloudflare_logs.assettype_com WHERE month = 12 AND year = 2018 AND day = 17 AND edgeresponsestatus = 200), publisher_data(name, cache_status, response_byte) AS (SELECT CASE WHEN position('%' IN url) > 0 THEN split_part(url, '%', 1) ELSE url END, cache_status, response_byte FROM request) SELECT name AS publisher_name, count(*) AS total_requests, sum(response_byte) AS total_bytes, sum(case WHEN cache_status = 'hit' THEN 1 ELSE 0 end) AS hit_count, '2018-12-17' AS date FROM publisher_data GROUP BY  name;"
+	// query := ""
 
 	stringDate := getDateString(queryParams)
 
@@ -50,6 +50,10 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 	requestCaseQuery := sq.Case().
 		When("split_part(clientrequesturi, '/', 2) = 'pdf'", "split_part(clientrequesturi, '/', 3)").
 		Else("split_part(clientrequesturi, '/', 2)")
+	
+	quintypeAceCaseQuery := sq.Case().
+		When("name = 'quintype-ace'", "concat('ahead_referer:', referer)").
+		Else("name")
 
 	publisherCaseQuery := sq.Case().
 		When("position('%' IN url) > 0", "split_part(url, '%', 1)").
@@ -63,19 +67,26 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 	dateQuery := fmt.Sprint("'", stringDate, "' as date")
 
 	requestSubQuery := sq.Select().
-		Prefix("WITH request(url, cache_status, response_byte) AS (").
+		Prefix("WITH request(url, cache_status, response_byte, referer) AS (").
 		Column(requestCaseQuery).
 		Columns("cachecachestatus", "edgeresponsebytes").
+		Column("concat('https://', split_part(split_part(clientrequestreferer, 'https://', 2), '/', 1))").
 		From(fromQuery).
 		Where(whereClause).
 		Suffix("),")
 
 	publisherDataSubQuery := sq.Select().
-		Prefix("publisher_data(name, cache_status, response_byte) AS (").
+		Prefix("publisher_data(name, cache_status, response_byte, referer) AS (").
 		Column(publisherCaseQuery).
-		Columns("cache_status, response_byte").
+		Columns("cache_status, response_byte, referer").
 		From("request").
 		Suffix(")")
+	
+	publisherNameSubQuery := sq.Select().
+		Prefix("publisher_name(name, cache_status, response_byte) AS (").
+		Column(quintypeAceCaseQuery).
+		Columns("cache_status", "response_byte").
+		From("publisher_data")
 
 	requestStringQuery, requestErrMsg := generateStringQuery(requestSubQuery)
 	reqErr := requestErrMsg.Err
@@ -83,11 +94,19 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 	if reqErr != nil {
 		return "", requestErrMsg
 	}
+
 	publisherDataStringQuery, publisherDataErrMsg := generateStringQuery(publisherDataSubQuery)
 	pubDataErr := publisherDataErrMsg.Err
 
 	if pubDataErr != nil {
 		return "", publisherDataErrMsg
+	}
+
+	publisherNameStringQuery, publisherNameErrMsg := generateStringQuery(publisherNameSubQuery)
+	pubNameErr := publisherNameErrMsg.Err
+
+	if pubNameErr != nil {
+		return "", publisherNameErrMsg
 	}
 
 	countExp := sq.Expr("count(*)")
@@ -97,12 +116,13 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 	query := sq.Select().
 		Prefix(requestStringQuery).
 		Prefix(publisherDataStringQuery).
+		Prefix(publisherNameStringQuery).
 		Column("name AS publisher_name").
 		Column(sq.Alias(countExp, "total_requests")).
 		Column(sq.Alias(responseByteSumExp, "total_bytes")).
 		Column(sq.Alias(hitSumExp, "hit_count")).
 		Column(dateQuery).
-		From("publisher_data").
+		From("publisher_name").
 		GroupBy("name")
 
 	return generateStringQuery(query)
