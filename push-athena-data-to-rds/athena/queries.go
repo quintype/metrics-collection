@@ -80,13 +80,14 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 		Column(publisherCaseQuery).
 		Columns("cache_status, response_byte, referer").
 		From("request").
-		Suffix(")")
+		Suffix("),")
 	
 	publisherNameSubQuery := sq.Select().
 		Prefix("publisher_name(name, cache_status, response_byte) AS (").
 		Column(quintypeAceCaseQuery).
 		Columns("cache_status", "response_byte").
-		From("publisher_data")
+		From("publisher_data").
+		Suffix(")")
 
 	requestStringQuery, requestErrMsg := generateStringQuery(requestSubQuery)
 	reqErr := requestErrMsg.Err
