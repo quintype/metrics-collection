@@ -53,7 +53,7 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 	
 	refererCaseQuery := sq.Case().
 		When("name = 'quintype-ace'", "referer").
-		Else("")
+		Else("''")
 
 	publisherCaseQuery := sq.Case().
 		When("position('%' IN url) > 0", "split_part(url, '%', 1)").
