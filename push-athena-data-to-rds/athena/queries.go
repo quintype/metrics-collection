@@ -51,9 +51,9 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 		When("split_part(clientrequesturi, '/', 2) = 'pdf'", "split_part(clientrequesturi, '/', 3)").
 		Else("split_part(clientrequesturi, '/', 2)")
 	
-	quintypeAceCaseQuery := sq.Case().
-		When("name = 'quintype-ace'", "concat('ahead_referer:', referer)").
-		Else("name")
+	refererCaseQuery := sq.Case().
+		When("name = 'quintype-ace'", "referer").
+		Else("")
 
 	publisherCaseQuery := sq.Case().
 		When("position('%' IN url) > 0", "split_part(url, '%', 1)").
@@ -82,10 +82,10 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 		From("request").
 		Suffix("),")
 	
-	publisherNameSubQuery := sq.Select().
-		Prefix("publisher_name(name, cache_status, response_byte) AS (").
-		Column(quintypeAceCaseQuery).
-		Columns("cache_status", "response_byte").
+	refererSubQuery := sq.Select().
+		Prefix("referer_name(name, cache_status, response_byte, referer) AS (").
+		Columns("name", "cache_status", "response_byte").
+		Column(refererCaseQuery).
 		From("publisher_data").
 		Suffix(")")
 
@@ -103,11 +103,11 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 		return "", publisherDataErrMsg
 	}
 
-	publisherNameStringQuery, publisherNameErrMsg := generateStringQuery(publisherNameSubQuery)
-	pubNameErr := publisherNameErrMsg.Err
+	refererStringQuery, refererErrMsg := generateStringQuery(refererSubQuery)
+	refererErr := refererErrMsg.Err
 
-	if pubNameErr != nil {
-		return "", publisherNameErrMsg
+	if refererErr != nil {
+		return "", refererErrMsg
 	}
 
 	countExp := sq.Expr("count(*)")
@@ -117,14 +117,15 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 	query := sq.Select().
 		Prefix(requestStringQuery).
 		Prefix(publisherDataStringQuery).
-		Prefix(publisherNameStringQuery).
+		Prefix(refererStringQuery).
 		Column("name AS publisher_name").
 		Column(sq.Alias(countExp, "total_requests")).
 		Column(sq.Alias(responseByteSumExp, "total_bytes")).
 		Column(sq.Alias(hitSumExp, "hit_count")).
+		Column("referer").
 		Column(dateQuery).
-		From("publisher_name").
-		GroupBy("name")
+		From("referer_name").
+		GroupBy("name", "referer")
 
 	return generateStringQuery(query)
 }
