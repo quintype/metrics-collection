@@ -62,8 +62,8 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 	whereClause := sq.And{sq.Eq{"year": queryParams["year"]},
 		sq.Eq{"month": queryParams["month"]},
 		sq.Eq{"day": queryParams["day"]},
-		sq.Eq{"edgeresponsestatus": "200"}}
-		sq.Eq{"workersubrequest": "false"}
+		sq.Eq{"edgeresponsestatus": "200"}
+		sq.Eq{"workersubrequest": "false"}}
 
 	dateQuery := fmt.Sprint("'", stringDate, "' as date")
 
