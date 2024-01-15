@@ -277,6 +277,7 @@ func FrontendHaproxyDataQuery(queryParams map[string]string, db string, table st
 	whereClause := sq.And{sq.Eq{"elb_status_code": fmt.Sprint("'", "200", "'")},
 		sq.NotLike{"request_url": fmt.Sprint("'", "%/?uptime%", "'")},
 		sq.NotLike{"request_url": fmt.Sprint("'", "%robots.txt%", "'")},
+		sq.NotLike{"request_url": fmt.Sprint("'", "%/api/v1%", "'")},
 		sq.NotLike{"request_url": fmt.Sprint("'", "%ping%", "'")},
 		sq.Eq{"year": yearString},
 		sq.Eq{"month": monthString},
