@@ -59,12 +59,11 @@ func AssetypeDataQuery(queryParams map[string]string, db string, table string) (
 		When("position('%' IN url) > 0", "split_part(url, '%', 1)").
 		Else("url")
 
-	whereClause := sq.And{sq.Eq{"securitylevel": fmt.Sprint("'", "eoff", "'")},
+	whereClause := sq.And{sq.Eq{"clientrequestsource": fmt.Sprint("'", "eyeball", "'")},
 		sq.Eq{"year": queryParams["year"]},
 		sq.Eq{"month": queryParams["month"]},
 		sq.Eq{"day": queryParams["day"]},
-		sq.Eq{"edgeresponsestatus": "200"},
-		sq.Eq{"workersubrequest": "false"}}
+		sq.Eq{"edgeresponsestatus": "200"}}
 
 	dateQuery := fmt.Sprint("'", stringDate, "' as date")
 
