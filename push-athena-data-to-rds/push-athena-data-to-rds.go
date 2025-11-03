@@ -160,7 +160,22 @@ func runProcesses() {
 	if len(missingVariables) <= 0 {
 		queryParams := getQueryParams()
 
-		dataSources := []string{"assettype", "host", "fastly_host", "varnish", "frontend_haproxy", "gumlet"}
+		// Check if DATA_SOURCES env variable is set
+		dataSourcesEnv, isDataSourcesPresent := os.LookupEnv("DATA_SOURCES")
+
+		var dataSources []string
+		if isDataSourcesPresent && len(dataSourcesEnv) > 0 {
+			// Split comma-separated data sources and trim spaces
+			dataSources = strings.Split(dataSourcesEnv, ",")
+			for i := range dataSources {
+				dataSources[i] = strings.TrimSpace(dataSources[i])
+			}
+			fmt.Println("Processing specified data sources:", dataSources)
+		} else {
+			// Default to all data sources
+			dataSources = []string{"assettype", "host", "fastly_host", "varnish", "frontend_haproxy", "gumlet"}
+			fmt.Println("Processing all data sources")
+		}
 
 		for index := 0; index < len(dataSources); index++ {
 			dataSource := dataSources[index]
